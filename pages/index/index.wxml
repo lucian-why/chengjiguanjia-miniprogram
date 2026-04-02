@@ -1,0 +1,482 @@
+<!-- 档案选择器 -->
+<view class="profile-bar" wx:if="{{profiles.length > 1}}">
+  <picker range="{{profileNames}}" value="{{activeProfileIndex}}" bindchange="onProfileSwitch">
+    <view class="profile-picker">
+      <text class="profile-picker-name">{{profiles[activeProfileIndex].name}}</text>
+      <text class="profile-picker-arrow">▼</text>
+    </view>
+  </picker>
+</view>
+
+<!-- 标签页 -->
+<view class="tabs">
+  <view class="tab {{currentTab === 'exam' ? 'active' : ''}}" bindtap="switchTab" data-tab="exam">考试详情</view>
+  <view class="tab {{currentTab === 'trend' ? 'active' : ''}}" bindtap="switchTab" data-tab="trend">成绩分析</view>
+  <view class="tab {{currentTab === 'settings' ? 'active' : ''}}" bindtap="switchTab" data-tab="settings">设置</view>
+</view>
+
+<!-- ===== 考试详情页 ===== -->
+<view class="tab-content" wx:if="{{currentTab === 'exam'}}">
+
+  <!-- 无考试空状态 -->
+  <view class="empty-state" wx:if="{{exams.length === 0}}">
+    <view class="empty-icon">📁</view>
+    <view class="empty-text">暂无考试记录</view>
+    <view class="empty-hint">点击下方按钮新建考试</view>
+  </view>
+
+  <!-- 考试列表 -->
+  <scroll-view scroll-y class="exam-scroll" wx:else>
+    <view class="exam-card {{item.excluded ? 'is-excluded' : ''}} {{currentExamId === item.id ? 'is-active' : ''}}"
+      wx:for="{{exams}}" wx:key="id" bindtap="selectExam" data-id="{{item.id}}">
+
+      <!-- 考试头部 -->
+      <view class="exam-header">
+        <view class="exam-info">
+          <view class="exam-name">{{item.name}}</view>
+          <view class="exam-meta">
+            <text wx:if="{{item.startDate}}">{{item.startDate}}</text>
+            <text wx:if="{{item.startDate}}"> · </text>
+            <text>{{item.totalScore}}分</text>
+          </view>
+        </view>
+        <view class="exam-badges">
+          <view class="badge" wx:if="{{item.excluded}}" style="background:#fee;color:#e88a8a;">已排除</view>
+          <view class="badge" wx:if="{{item.totalClassRank}}" style="background:rgba(124,169,201,0.12);color:#7ca9c9;">班{{item.totalClassRank}}</view>
+          <view class="badge" wx:if="{{item.totalGradeRank}}" style="background:rgba(155,141,196,0.12);color:#9b8dc4;">校{{item.totalGradeRank}}</view>
+        </view>
+      </view>
+
+      <!-- 展开的科目列表 -->
+      <view class="exam-subjects" wx:if="{{currentExamId === item.id}}">
+        <view class="subject-row" wx:for="{{item.subjects}}" wx:for-item="sub" wx:key="name" data-index="{{index}}" catchtap="editSubject">
+          <view class="subject-row-left">
+            <text class="subject-dot" style="background:{{sub.score >= 90 ? '#7cb98b' : (sub.score >= 60 ? '#e8a87c' : '#e88a8a')}};"></text>
+            <text class="subject-row-name">{{sub.name}}</text>
+          </view>
+          <view class="subject-row-right">
+            <text class="subject-row-score" style="color:{{sub.score >= 90 ? '#7cb98b' : (sub.score >= 60 ? '#2d2a26' : '#e88a8a')}};">{{sub.score}}</text>
+            <text class="subject-row-full">/{{sub.fullScore || 100}}</text>
+            <view class="rank-tags">
+              <text class="rank-tag" wx:if="{{sub.classRank}}">班{{sub.classRank}}</text>
+              <text class="rank-tag" wx:if="{{sub.gradeRank}}">校{{sub.gradeRank}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 考试操作按钮 -->
+      <view class="exam-actions" wx:if="{{currentExamId === item.id}}" catchtap="">
+        <view class="exam-action-btn" catchtap="toggleExclude" data-id="{{item.id}}">
+          {{item.excluded ? '恢复统计' : '排除统计'}}
+        </view>
+        <view class="exam-action-btn" catchtap="openExamModal" data-id="{{item.id}}">编辑</view>
+        <view class="exam-action-btn danger" catchtap="deleteExam" data-id="{{item.id}}">删除</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部新建按钮 -->
+  <view class="new-exam-btn" bindtap="openExamModal">
+    <text>+ 新建考试</text>
+  </view>
+</view>
+
+<!-- ===== 成绩分析页 ===== -->
+<view class="tab-content" wx:if="{{currentTab === 'trend'}}">
+
+  <!-- 分析模式切换 -->
+  <view class="analysis-tabs">
+    <view class="analysis-tab {{analysisMode === 'score' ? 'active' : ''}}" bindtap="switchAnalysisMode" data-mode="score">📊 分数趋势</view>
+    <view class="analysis-tab {{analysisMode === 'rank' ? 'active' : ''}}" bindtap="switchAnalysisMode" data-mode="rank">🏅 排名趋势</view>
+    <view class="analysis-tab {{analysisMode === 'radar' ? 'active' : ''}}" bindtap="switchAnalysisMode" data-mode="radar">🎯 科目对比</view>
+  </view>
+
+  <!-- 趋势图模式 -->
+  <view class="card chart-card" wx:if="{{analysisMode === 'score' || analysisMode === 'rank'}}">
+    <!-- 放大按钮 -->
+    <view class="chart-zoom-btn" bindtap="openChartZoom" data-type="trend">⛶</view>
+    <!-- 科目/总分切换 tabs -->
+    <scroll-view scroll-x class="chart-tabs-scroll">
+      <view class="chart-tabs-inner">
+        <view class="chart-tab {{selectedChartSubject === '' ? 'active' : ''}}" bindtap="selectChartSubject" data-subject="">总分{{analysisMode === 'score' ? '趋势' : ''}}</view>
+        <view class="chart-tab {{selectedChartSubject === item ? 'active' : ''}}"
+          wx:for="{{subjectNames}}" wx:key="*this" bindtap="selectChartSubject" data-subject="{{item}}">{{item}}</view>
+      </view>
+    </scroll-view>
+
+    <!-- 排名类型选择 -->
+    <view class="rank-type-row" wx:if="{{analysisMode === 'rank'}}">
+      <view class="rank-type-option {{rankType === 'class' ? 'active' : ''}}" bindtap="switchRankType" data-type="class">班级排名</view>
+      <view class="rank-type-option {{rankType === 'grade' ? 'active' : ''}}" bindtap="switchRankType" data-type="grade">年级排名</view>
+    </view>
+
+    <!-- 图表 Canvas -->
+    <canvas canvas-id="trendChart" id="trendChart" class="trend-canvas"></canvas>
+
+    <!-- 空状态提示 -->
+    <view class="chart-empty" wx:if="{{trendEmpty}}">
+      <view class="chart-empty-icon">{{analysisMode === 'rank' ? '🏅' : '📊'}}</view>
+      <view class="chart-empty-text">{{analysisMode === 'rank' ? '暂无排名数据，请在考试中填写排名信息' : '暂无成绩数据'}}</view>
+    </view>
+  </view>
+
+  <!-- 雷达图模式 -->
+  <view class="card chart-card" wx:if="{{analysisMode === 'radar'}}">
+    <!-- 放大按钮 -->
+    <view class="chart-zoom-btn" bindtap="openChartZoom" data-type="radar">⛶</view>
+    <!-- 当前考试名称 -->
+    <view class="radar-title">当前：<text style="color:var(--accent-warm);font-weight:600;">{{currentExam ? currentExam.name : '未选择'}}</text></view>
+
+    <!-- 对比考试选择 -->
+    <view class="radar-compare" wx:if="{{compareExams.length > 0}}">
+      <view class="radar-compare-chips">
+        <view class="compare-chip current">{{currentExam ? currentExam.name : '--'}}</view>
+        <view class="compare-chip {{item.selected ? 'selected' : ''}} {{selectedCompareCount >= 2 && !item.selected ? 'disabled' : ''}}"
+          wx:for="{{compareExams}}" wx:key="id" bindtap="toggleCompare" data-id="{{item.id}}">
+          {{item.name}}
+        </view>
+      </view>
+      <view class="radar-hint">点击选择考试进行对比（最多2场）</view>
+    </view>
+
+    <canvas canvas-id="radarChart" id="radarChart" class="radar-canvas"></canvas>
+
+    <!-- 最强/最弱科目 -->
+    <view class="radar-summary" wx:if="{{radarBest && radarWorst && !radarEmpty}}">
+      <view class="radar-summary-item best">
+        <text class="radar-summary-icon">🏆</text>
+        <text class="radar-summary-label">最强</text>
+        <text class="radar-summary-name">{{radarBest.name}}</text>
+        <text class="radar-summary-detail">{{radarBest.score}}/{{radarBest.fullScore}}</text>
+        <text class="radar-summary-rate best-rate">{{radarBest.rate}}%</text>
+      </view>
+      <view class="radar-summary-item worst">
+        <text class="radar-summary-icon">📉</text>
+        <text class="radar-summary-label">最弱</text>
+        <text class="radar-summary-name">{{radarWorst.name}}</text>
+        <text class="radar-summary-detail">{{radarWorst.score}}/{{radarWorst.fullScore}}</text>
+        <text class="radar-summary-rate worst-rate">{{radarWorst.rate}}%</text>
+      </view>
+    </view>
+
+    <view class="chart-empty" wx:if="{{radarEmpty}}">
+      <view class="chart-empty-icon">🎯</view>
+      <view class="chart-empty-text">{{radarEmptyText}}</view>
+    </view>
+  </view>
+</view>
+
+<!-- ===== 设置页 ===== -->
+<view class="tab-content" wx:if="{{currentTab === 'settings'}}">
+
+  <!-- 档案管理 -->
+  <view class="card">
+    <view class="card-title">档案管理</view>
+    <view class="setting-desc">每个档案是独立的成绩空间，适合区分不同孩子或不同学习阶段。</view>
+
+    <!-- 档案列表 -->
+    <view class="profile-list">
+      <view class="profile-item {{profiles[activeProfileIndex].id === item.id ? 'is-active' : ''}}"
+        wx:for="{{profiles}}" wx:key="id" bindtap="switchToProfile" data-index="{{index}}">
+        <view class="profile-item-info">
+          <view class="profile-item-name">
+            {{item.name}}
+            <view class="active-badge" wx:if="{{profiles[activeProfileIndex].id === item.id}}">当前</view>
+          </view>
+          <view class="profile-item-meta">{{item.examCount}} 条考试记录</view>
+        </view>
+        <view class="profile-item-actions" catchtap="">
+          <view class="profile-share-btn" bindtap="openShareProfileReport" data-index="{{index}}">📤 分享报告</view>
+          <view class="profile-action-btn" bindtap="renameProfile" data-index="{{index}}">✎</view>
+          <view class="profile-action-btn danger" wx:if="{{profiles.length > 1}}" bindtap="confirmDeleteProfile" data-index="{{index}}">🗑</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 新建档案 -->
+    <view class="add-profile-area">
+      <view class="add-profile-btn" wx:if="{{!showAddProfile}}" bindtap="showAddProfileInput">+ 新建档案</view>
+      <view class="add-profile-input-row" wx:else>
+        <input class="add-profile-input" placeholder="输入档案名称" maxlength="20" value="{{newProfileName}}" bindinput="onNewProfileInput" bindconfirm="confirmAddProfile" focus="{{true}}" />
+        <view class="add-profile-confirm" bindtap="confirmAddProfile">确定</view>
+        <view class="add-profile-cancel" bindtap="cancelAddProfile">取消</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 数据管理 -->
+  <view class="card">
+    <view class="card-title">数据管理</view>
+
+    <view class="setting-row" wx:if="{{hasDemoData}}">
+      <view class="setting-row-left">
+        <view class="setting-label">清除示例数据</view>
+        <view class="setting-desc">删除预置的示例考试</view>
+      </view>
+      <view class="setting-btn danger" bindtap="clearDemoData">清除</view>
+    </view>
+
+    <view class="setting-row">
+      <view class="setting-row-left">
+        <view class="setting-label">添加示例数据</view>
+        <view class="setting-desc">一键添加测试数据</view>
+      </view>
+      <view class="setting-btn green" bindtap="addDemoData">添加</view>
+    </view>
+
+    <view class="setting-row">
+      <view class="setting-row-left">
+        <view class="setting-label">导出数据</view>
+        <view class="setting-desc">导出为Excel文件</view>
+      </view>
+      <view class="setting-btn" bindtap="exportData">导出</view>
+    </view>
+
+    <view class="setting-row">
+      <view class="setting-row-left">
+        <view class="setting-label">导入数据</view>
+        <view class="setting-desc">从Excel文件导入</view>
+      </view>
+      <view class="setting-btn" bindtap="importData">导入</view>
+    </view>
+  </view>
+</view>
+
+<!-- ===== 底部考试详情面板 ===== -->
+<view class="detail-mask" wx:if="{{showDetailPanel && currentExam}}" bindtap="closeDetailPanel" catchtouchmove=""></view>
+<view class="detail-panel" wx:if="{{showDetailPanel && currentExam}}">
+  <view class="detail-panel-header" catchtouchmove="">
+    <view class="detail-panel-handle"></view>
+    <view class="detail-panel-title">{{currentExam.name}}</view>
+    <view class="detail-panel-summary">
+      <text class="detail-panel-score">{{currentExam.totalScore}}分</text>
+      <text class="rank-tag" wx:if="{{currentExam.totalClassRank}}">班{{currentExam.totalClassRank}}</text>
+      <text class="rank-tag" wx:if="{{currentExam.totalGradeRank}}">校{{currentExam.totalGradeRank}}</text>
+    </view>
+  </view>
+  <scroll-view scroll-y class="detail-panel-body">
+    <!-- 分享按钮 -->
+    <view class="share-btn" bindtap="openShareExamReport">📤 分享考试报告</view>
+
+    <!-- 日期与备注 -->
+    <view class="exam-date" wx:if="{{currentExam.startDate}}">
+      📅 {{currentExam.startDate}}{{currentExam.endDate && currentExam.endDate !== currentExam.startDate ? ' ~ ' + currentExam.endDate : ''}}
+    </view>
+    <view class="exam-notes" wx:if="{{currentExam.notes}}">{{currentExam.notes}}</view>
+
+    <!-- 各科成绩 -->
+    <view class="card">
+      <view class="card-title">各科成绩</view>
+      <view class="subject-cards">
+        <view class="subject-card" wx:for="{{currentExam.subjects}}" wx:key="name" data-index="{{index}}" bindtap="editSubject">
+          <view class="subject-card-name">{{item.name}}</view>
+          <view class="subject-card-score {{item.score >= 90 ? 'good' : (item.score >= 60 ? 'normal' : 'bad')}}">{{item.score}}</view>
+          <view class="subject-card-rank" wx:if="{{item.classRank || item.gradeRank}}">
+            <text class="rank-tag" wx:if="{{item.classRank}}">班{{item.classRank}}</text>
+            <text class="rank-tag" wx:if="{{item.gradeRank}}">校{{item.gradeRank}}</text>
+          </view>
+        </view>
+        <!-- 删除单科按钮 -->
+        <view class="subject-card delete-subject-btn" wx:if="{{currentExam.subjects.length > 0}}" catchtap="confirmDeleteSubject">
+          <view class="subject-card-name" style="color:var(--accent-danger);">🗑 删除科目</view>
+          <view class="subject-card-score normal" style="font-size:24rpx;">长按选择</view>
+        </view>
+        <view class="add-subject-btn" bindtap="openScoreModal">
+          <text style="font-size:48rpx;">+</text>
+          <text>添加成绩</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- ===== 弹窗层 ===== -->
+
+<!-- 新建/编辑考试弹窗 -->
+<view class="modal-mask" wx:if="{{showExamModal}}">
+  <view class="modal" catchtap="" catchtouchmove="">
+    <view class="modal-header">
+      <view class="modal-title">{{editExamId ? '编辑考试' : '新建考试'}}</view>
+      <view class="modal-close" bindtap="closeExamModal">✕</view>
+    </view>
+    <view class="modal-body">
+      <view class="form-group">
+        <view class="form-label">考试名称 *</view>
+        <input class="form-input" placeholder="如：2026年3月月考" value="{{examForm.name}}" bindinput="onExamFormInput" data-field="name" />
+      </view>
+      <view class="form-row">
+        <view class="form-group">
+          <view class="form-label">开始日期</view>
+          <picker mode="date" value="{{examForm.startDate}}" bindchange="onExamDatePick" data-field="startDate">
+            <view class="form-input picker-input">{{examForm.startDate || '选择日期'}}</view>
+          </picker>
+        </view>
+        <view class="form-group">
+          <view class="form-label">结束日期</view>
+          <picker mode="date" value="{{examForm.endDate}}" bindchange="onExamDatePick" data-field="endDate">
+            <view class="form-input picker-input">{{examForm.endDate || '选择日期'}}</view>
+          </picker>
+        </view>
+      </view>
+      <view class="form-group">
+        <view class="form-label">备注</view>
+        <textarea class="form-textarea" placeholder="可选备注" value="{{examForm.notes}}" bindinput="onExamFormInput" data-field="notes" maxlength="200"></textarea>
+      </view>
+      <view class="form-row">
+        <view class="form-group">
+          <view class="form-label">班级排名（总分）</view>
+          <input class="form-input" type="number" placeholder="选填" value="{{examForm.totalClassRank}}" bindinput="onExamFormInput" data-field="totalClassRank" />
+        </view>
+        <view class="form-group">
+          <view class="form-label">年级排名（总分）</view>
+          <input class="form-input" type="number" placeholder="选填" value="{{examForm.totalGradeRank}}" bindinput="onExamFormInput" data-field="totalGradeRank" />
+        </view>
+      </view>
+      <view class="form-row">
+        <view class="form-group">
+          <view class="form-label">班级人数</view>
+          <input class="form-input" type="number" placeholder="选填" value="{{examForm.classTotal}}" bindinput="onExamFormInput" data-field="classTotal" />
+        </view>
+        <view class="form-group">
+          <view class="form-label">年级人数</view>
+          <input class="form-input" type="number" placeholder="选填" value="{{examForm.gradeTotal}}" bindinput="onExamFormInput" data-field="gradeTotal" />
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <view class="btn btn-secondary" bindtap="closeExamModal">取消</view>
+      <view class="btn btn-primary" bindtap="saveExam">保存</view>
+    </view>
+  </view>
+</view>
+
+<!-- 添加/编辑成绩弹窗 -->
+<view class="modal-mask" wx:if="{{showScoreModal}}" bindtap="closeScoreModal">
+  <view class="modal" catchtap="" catchtouchmove="">
+    <view class="modal-header">
+      <view class="modal-title">{{editSubjectIndex !== null ? '编辑成绩' : '添加成绩'}}</view>
+      <view class="modal-close" bindtap="closeScoreModal">✕</view>
+    </view>
+    <view class="modal-body">
+      <view class="form-group">
+        <view class="form-label">科目 *</view>
+        <input class="form-input" placeholder="如：数学" value="{{scoreForm.name}}" bindinput="onScoreFormInput" data-field="name" />
+      </view>
+      <view class="form-row">
+        <view class="form-group">
+          <view class="form-label">成绩 *</view>
+          <input class="form-input" type="number" placeholder="分数" value="{{scoreForm.score}}" bindinput="onScoreFormInput" data-field="score" />
+        </view>
+        <view class="form-group">
+          <view class="form-label">满分</view>
+          <input class="form-input" type="number" placeholder="100" value="{{scoreForm.fullScore}}" bindinput="onScoreFormInput" data-field="fullScore" />
+        </view>
+      </view>
+      <view class="form-row">
+        <view class="form-group">
+          <view class="form-label">班级排名</view>
+          <input class="form-input" type="number" placeholder="选填" value="{{scoreForm.classRank}}" bindinput="onScoreFormInput" data-field="classRank" />
+        </view>
+        <view class="form-group">
+          <view class="form-label">年级排名</view>
+          <input class="form-input" type="number" placeholder="选填" value="{{scoreForm.gradeRank}}" bindinput="onScoreFormInput" data-field="gradeRank" />
+        </view>
+      </view>
+      <view class="form-group">
+        <view class="form-label">备注（可选）</view>
+        <input class="form-input" placeholder="如：粗心大意扣5分" value="{{scoreForm.notes}}" bindinput="onScoreFormInput" data-field="notes" />
+      </view>
+    </view>
+    <view class="modal-footer">
+      <view class="btn btn-secondary" bindtap="closeScoreModal">取消</view>
+      <view class="btn btn-primary" bindtap="saveSubject">保存</view>
+    </view>
+  </view>
+</view>
+
+<!-- 确认弹窗 -->
+<view class="modal-mask" wx:if="{{showConfirmModal}}" bindtap="closeConfirmModal">
+  <view class="modal confirm-modal" catchtap="">
+    <view class="confirm-icon-wrap {{confirmIconType}}">
+      <text>{{confirmIcon}}</text>
+    </view>
+    <view class="confirm-title">{{confirmTitle}}</view>
+    <view class="confirm-message">{{confirmMessage}}</view>
+    <view class="modal-footer">
+      <view class="btn btn-secondary" bindtap="closeConfirmModal" wx:if="{{confirmShowCancel}}">取消</view>
+      <view class="btn {{confirmOkClass}}" bindtap="onConfirmOk">{{confirmOkText}}</view>
+    </view>
+  </view>
+</view>
+
+<!-- 分享报告预览弹窗 -->
+<view class="modal-mask" wx:if="{{showReportModal}}" bindtap="closeReportModal">
+  <view class="modal report-modal" catchtap="">
+    <view class="modal-header">
+      <view class="modal-title">📷 预览分享报告</view>
+      <view class="modal-close" bindtap="closeReportModal">✕</view>
+    </view>
+    <view class="report-preview">
+      <canvas canvas-id="reportCanvas" id="reportCanvas" class="report-canvas" style="height:{{reportCanvasHeight || 800}}px;width:375px;" wx:if="{{!reportImage}}"></canvas>
+      <image wx:if="{{reportImage}}" src="{{reportImage}}" mode="widthFix" class="report-image" show-menu-by-longpress="true"></image>
+      <view class="report-loading" wx:if="{{reportLoading}}">
+        <view class="report-loading-text">正在生成报告...</view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <view class="btn btn-secondary" bindtap="closeReportModal">取消</view>
+      <view class="btn btn-download" bindtap="saveReport" wx:if="{{reportImage}}">💾 保存图片</view>
+      <view class="btn btn-share" bindtap="shareReport" wx:if="{{reportImage}}">📤 转发给朋友</view>
+    </view>
+  </view>
+</view>
+
+<!-- 重命名弹窗 -->
+<view class="modal-mask" wx:if="{{showRenameModal}}" bindtap="closeRenameModal">
+  <view class="modal" catchtap="" catchtouchmove="">
+    <view class="modal-header">
+      <view class="modal-title">重命名档案</view>
+      <view class="modal-close" bindtap="closeRenameModal">✕</view>
+    </view>
+    <view class="modal-body">
+      <view class="form-group">
+        <input class="form-input" placeholder="输入新名称" maxlength="20" value="{{renameValue}}" bindinput="onRenameInput" focus="{{true}}" bindconfirm="confirmRename" />
+      </view>
+    </view>
+    <view class="modal-footer">
+      <view class="btn btn-secondary" bindtap="closeRenameModal">取消</view>
+      <view class="btn btn-primary" bindtap="confirmRename">确定</view>
+    </view>
+  </view>
+</view>
+
+<!-- 图表放大弹窗 -->
+<view class="modal-mask" wx:if="{{showChartZoom}}" bindtap="closeChartZoom">
+  <view class="modal chart-zoom-modal" catchtap="" catchtouchmove="">
+    <view class="modal-header">
+      <view class="modal-title">{{chartZoomTitle}}</view>
+      <view class="modal-close" bindtap="closeChartZoom">✕</view>
+    </view>
+    <view class="modal-body chart-zoom-body">
+      <block wx:if="{{chartZoomType === 'trend'}}">
+        <scroll-view scroll-x class="chart-tabs-scroll">
+          <view class="chart-tabs-inner">
+            <view class="chart-tab {{zoomSelectedSubject === '' ? 'active' : ''}}" bindtap="zoomSelectSubject" data-subject="">总分</view>
+            <view class="chart-tab {{zoomSelectedSubject === item ? 'active' : ''}}"
+              wx:for="{{subjectNames}}" wx:key="*this" bindtap="zoomSelectSubject" data-subject="{{item}}">{{item}}</view>
+          </view>
+        </scroll-view>
+        <view class="rank-type-row" wx:if="{{analysisMode === 'rank'}}">
+          <view class="rank-type-option {{zoomRankType === 'class' ? 'active' : ''}}" bindtap="zoomSwitchRankType" data-type="class">班级排名</view>
+          <view class="rank-type-option {{zoomRankType === 'grade' ? 'active' : ''}}" bindtap="zoomSwitchRankType" data-type="grade">年级排名</view>
+        </view>
+        <canvas canvas-id="zoomTrendChart" id="zoomTrendChart" class="zoom-trend-canvas"></canvas>
+      </block>
+      <block wx:if="{{chartZoomType === 'radar'}}">
+        <view class="radar-title">当前：<text style="color:var(--accent-warm);font-weight:600;">{{currentExam ? currentExam.name : '未选择'}}</text></view>
+        <canvas canvas-id="zoomRadarChart" id="zoomRadarChart" class="zoom-radar-canvas"></canvas>
+      </block>
+    </view>
+  </view>
+</view>

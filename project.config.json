@@ -1,0 +1,22 @@
+{
+  "appid": "touristappid",
+  "projectname": "成绩管家_小程序",
+  "compileType": "miniprogram",
+  "libVersion": "3.6.1",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "coverView": true,
+    "checkInvalidKey": true,
+    "showShadowRootInWxmlPanel": true,
+    "skylineRenderEnable": false,
+    "packNpmManually": false,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "ignoreUploadUnusedFiles": true
+  },
+  "condition": {}
+}
