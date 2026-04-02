@@ -47,32 +47,7 @@
         </view>
       </view>
 
-      <!-- 展开的科目列表 -->
-      <view class="exam-subjects" wx:if="{{currentExamId === item.id}}">
-        <view class="subject-row" wx:for="{{item.subjects}}" wx:for-item="sub" wx:key="name" data-index="{{index}}" catchtap="editSubject">
-          <view class="subject-row-left">
-            <text class="subject-dot" style="background:{{sub.score >= 90 ? '#7cb98b' : (sub.score >= 60 ? '#e8a87c' : '#e88a8a')}};"></text>
-            <text class="subject-row-name">{{sub.name}}</text>
-          </view>
-          <view class="subject-row-right">
-            <text class="subject-row-score" style="color:{{sub.score >= 90 ? '#7cb98b' : (sub.score >= 60 ? '#2d2a26' : '#e88a8a')}};">{{sub.score}}</text>
-            <text class="subject-row-full">/{{sub.fullScore || 100}}</text>
-            <view class="rank-tags">
-              <text class="rank-tag" wx:if="{{sub.classRank}}">班{{sub.classRank}}</text>
-              <text class="rank-tag" wx:if="{{sub.gradeRank}}">校{{sub.gradeRank}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
 
-      <!-- 考试操作按钮 -->
-      <view class="exam-actions" wx:if="{{currentExamId === item.id}}" catchtap="">
-        <view class="exam-action-btn" catchtap="toggleExclude" data-id="{{item.id}}">
-          {{item.excluded ? '恢复统计' : '排除统计'}}
-        </view>
-        <view class="exam-action-btn" catchtap="openExamModal" data-id="{{item.id}}">编辑</view>
-        <view class="exam-action-btn danger" catchtap="deleteExam" data-id="{{item.id}}">删除</view>
-      </view>
     </view>
   </scroll-view>
 
@@ -253,6 +228,14 @@
       <text class="detail-panel-score">{{currentExam.totalScore}}分</text>
       <text class="rank-tag" wx:if="{{currentExam.totalClassRank}}">班{{currentExam.totalClassRank}}</text>
       <text class="rank-tag" wx:if="{{currentExam.totalGradeRank}}">校{{currentExam.totalGradeRank}}</text>
+    </view>
+    <!-- 操作按钮 -->
+    <view class="detail-panel-actions">
+      <view class="detail-action-btn" catchtap="toggleExclude" data-id="{{currentExam.id}}">
+        {{currentExam.excluded ? '恢复统计' : '排除统计'}}
+      </view>
+      <view class="detail-action-btn" catchtap="openExamModal" data-id="{{currentExam.id}}">编辑</view>
+      <view class="detail-action-btn danger" catchtap="deleteExam" data-id="{{currentExam.id}}">删除</view>
     </view>
   </view>
   <scroll-view scroll-y class="detail-panel-body">

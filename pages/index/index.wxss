@@ -240,7 +240,7 @@ view, text, navigator, image {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 70vh;
+  height: 80vh;
   background: var(--bg-primary);
   border-radius: 32rpx 32rpx 0 0;
   z-index: 501;
@@ -286,6 +286,29 @@ view, text, navigator, image {
   gap: 8rpx;
 }
 
+.detail-panel-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.detail-action-btn {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border-radius: 12rpx;
+  border: 1rpx solid var(--border-color);
+}
+
+.detail-action-btn.danger {
+  color: var(--accent-danger);
+  border-color: #fcc;
+  background: #fee;
+}
+
 .detail-panel-score {
   font-size: 30rpx;
   font-weight: 600;
@@ -294,7 +317,7 @@ view, text, navigator, image {
 
 .detail-panel-body {
   flex: 1;
-  padding: 24rpx 28rpx 60rpx;
+  padding: 24rpx 28rpx 120rpx;
 }
 
 /* 分享按钮 */
