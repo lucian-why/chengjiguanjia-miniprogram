@@ -2,6 +2,7 @@ const EXAMS_KEY = 'xueji_exams';
 const PROFILES_KEY = 'xueji_profiles';
 const ACTIVE_PROFILE_KEY = 'xueji_active_profile';
 const TREND_MODE_KEY = 'xueji_trend_mode';
+const RADAR_SELECTION_KEY = 'xueji_radar_selection';
 
 function readJSON(key, fallback) {
   try {
@@ -97,6 +98,14 @@ function getTrendMode() {
   });
 }
 
+function saveRadarSelection(payload) {
+  writeJSON(RADAR_SELECTION_KEY, payload);
+}
+
+function getRadarSelection() {
+  return readJSON(RADAR_SELECTION_KEY, {});
+}
+
 function migrateProfilesIfNeeded() {
   const profiles = getProfiles();
   const exams = getExamsAll();
@@ -148,5 +157,7 @@ module.exports = {
   deleteProfile,
   saveTrendMode,
   getTrendMode,
+  saveRadarSelection,
+  getRadarSelection,
   migrateProfilesIfNeeded
 };

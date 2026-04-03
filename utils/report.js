@@ -79,7 +79,6 @@ function drawExamReport(ctx, payload) {
 
   subjects.forEach((subject, index) => {
     const rowTop = currentTop + index * 58;
-    const pct = subject.fullScore ? `${toPercent(subject.score, subject.fullScore, 1)}%` : '--';
     const scoreColor = subject.score >= 90 ? '#52c41a' : subject.score >= 60 ? '#2d2a26' : '#f5222d';
 
     ctx.setStrokeStyle('#f0eeea');
@@ -90,7 +89,6 @@ function drawExamReport(ctx, payload) {
 
     drawText(ctx, subject.name, 28, rowTop + 20, { size: 14, color: '#333333', bold: true });
     drawText(ctx, `${subject.score}/${subject.fullScore || 100}`, 130, rowTop + 22, { size: 17, color: scoreColor, bold: true });
-    drawText(ctx, pct, 220, rowTop + 22, { size: 12, color: '#8a857f' });
 
     let tagX = width - 40;
     if (subject.gradeRank) {

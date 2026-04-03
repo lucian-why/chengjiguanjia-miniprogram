@@ -19,6 +19,9 @@ Page({
     currentExamId: '',
     currentExam: null,
     showDetailPanel: false,
+    panelSlideOut: false,
+    tabSlideIn: false,
+    pageSwipeDirection: '',
 
     // 成绩分析
     analysisMode: 'score',
@@ -29,7 +32,8 @@ Page({
 
     // 雷达图
     compareExams: [],
-    selectedCompareCount: 0,
+    selectedRadarIds: [],
+    radarMainExam: null,
     radarEmpty: false,
     radarEmptyText: '选择考试后查看各科得分率分析',
 
@@ -46,6 +50,8 @@ Page({
     zoomRankType: 'class',
     editExamId: '',
     editSubjectIndex: null,
+    continuousCreate: false,
+    continuousCreateCount: 0,
     showAddProfile: false,
     newProfileName: '',
 
@@ -180,11 +186,45 @@ Page({
     // 选中考试，打开面板
     this.setData({ currentExamId: id, showDetailPanel: true });
     this._refreshCurrentExam();
-    this._refreshAnalysis();
   },
 
   closeDetailPanel() {
-    this.setData({ showDetailPanel: false, currentExamId: '', currentExam: null });
+    this.setData({ showDetailPanel: false, currentExamId: '', currentExam: null, panelSlideOut: false });
+  },
+
+  // 左滑手势：考试详情面板 → 成绩分析
+  onPanelTouchStart(e) {
+    if (!e.touches || !e.touches[0]) return;
+    this._panelTouchStartX = e.touches[0].clientX;
+    this._panelTouchStartY = e.touches[0].clientY;
+  },
+
+  onPanelTouchEnd(e) {
+    if (this._panelTouchStartX == null) return;
+    const endX = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : this._panelTouchStartX;
+    const endY = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : this._panelTouchStartY;
+    const dx = endX - this._panelTouchStartX;
+    const dy = endY - this._panelTouchStartY;
+    this._panelTouchStartX = null;
+    this._panelTouchStartY = null;
+
+    // 水平滑动且方向为左，距离超过阈值，且水平位移大于垂直位移（避免干扰垂直滚动）
+    if (dx < -80 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      // 先播放面板滑出动画
+      this.setData({ panelSlideOut: true });
+      setTimeout(() => {
+        this.setData({
+          showDetailPanel: false,
+          currentTab: 'trend',
+          panelSlideOut: false,
+          tabSlideIn: true,
+          pageSwipeDirection: 'slide-in-right'
+        });
+        this.$nextTick && this.$nextTick(() => this._drawChart());
+        setTimeout(() => this._drawChart(), 300);
+        setTimeout(() => this.setData({ tabSlideIn: false, pageSwipeDirection: '' }), 250);
+      }, 250);
+    }
   },
 
   _refreshCurrentExam() {
@@ -201,11 +241,63 @@ Page({
 
   switchTab(e) {
     const tab = e.currentTarget.dataset.tab;
-    this.setData({ currentTab: tab, showDetailPanel: false });
+    const tabOrder = ['exam', 'trend', 'settings'];
+    const oldIdx = tabOrder.indexOf(this.data.currentTab);
+    const newIdx = tabOrder.indexOf(tab);
+    // 根据新旧 tab 位置决定滑入方向
+    const dir = newIdx > oldIdx ? 'slide-in-right' : 'slide-in-left';
+    this.setData({ currentTab: tab, showDetailPanel: false, tabSlideIn: true, pageSwipeDirection: dir });
     if (tab === 'trend') {
       this.$nextTick && this.$nextTick(() => this._drawChart());
-      // 兼容：使用 setTimeout 确保 canvas 已渲染
       setTimeout(() => this._drawChart(), 300);
+    }
+    setTimeout(() => this.setData({ tabSlideIn: false, pageSwipeDirection: '' }), 250);
+  },
+
+  // 页面级滑动手势处理（三个 tab-content 共用）
+  onPageTouchStart(e) {
+    if (!e.touches || !e.touches[0]) return;
+    // 任何弹窗打开时不触发页面滑动
+    if (this.data.showDetailPanel || this.data.showExamModal || this.data.showScoreModal ||
+        this.data.showConfirmModal || this.data.showReportModal || this.data.showRenameModal ||
+        this.data.showChartZoom) return;
+    this._pageTouchStartX = e.touches[0].clientX;
+    this._pageTouchStartY = e.touches[0].clientY;
+  },
+
+  onPageTouchEnd(e) {
+    if (this._pageTouchStartX == null) return;
+    const endX = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : this._pageTouchStartX;
+    const endY = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : this._pageTouchStartY;
+    const dx = endX - this._pageTouchStartX;
+    const dy = endY - this._pageTouchStartY;
+    this._pageTouchStartX = null;
+    this._pageTouchStartY = null;
+
+    const tabOrder = ['exam', 'trend', 'settings'];
+    const currentIdx = tabOrder.indexOf(this.data.currentTab);
+
+    // 水平滑动判定：位移 > 80px，且水平 > 垂直 × 1.2
+    if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      if (dx < 0 && currentIdx < tabOrder.length - 1) {
+        // 左滑 → 下一页
+        const nextTab = tabOrder[currentIdx + 1];
+        this.setData({ currentTab: nextTab, pageSwipeDirection: 'slide-in-right' });
+        if (nextTab === 'trend') {
+          this.$nextTick && this.$nextTick(() => this._drawChart());
+          setTimeout(() => this._drawChart(), 300);
+        }
+        setTimeout(() => this.setData({ pageSwipeDirection: '' }), 250);
+      } else if (dx > 0 && currentIdx > 0) {
+        // 右滑 → 上一页
+        const prevTab = tabOrder[currentIdx - 1];
+        this.setData({ currentTab: prevTab, pageSwipeDirection: 'slide-in-left' });
+        if (prevTab === 'trend') {
+          this.$nextTick && this.$nextTick(() => this._drawChart());
+          setTimeout(() => this._drawChart(), 300);
+        }
+        setTimeout(() => this.setData({ pageSwipeDirection: '' }), 250);
+      }
     }
   },
 
@@ -232,10 +324,15 @@ Page({
         }
       });
     } else {
-      // 新建模式
+      // 新建模式：从最近一次考试中记忆班级人数和年级人数
+      const exams = storage.getExams(storage.getActiveProfileId()).sort(fmt.compareExamDateDesc);
+      const lastClassTotal = exams.length > 0 ? (exams[0].classTotal || '') : '';
+      const lastGradeTotal = exams.length > 0 ? (exams[0].gradeTotal || '') : '';
       this.setData({
         editExamId: '',
         showExamModal: true,
+        continuousCreate: false,
+        continuousCreateCount: 0,
         examForm: {
           name: '',
           startDate: '',
@@ -243,15 +340,15 @@ Page({
           notes: '',
           totalClassRank: '',
           totalGradeRank: '',
-          classTotal: '',
-          gradeTotal: ''
+          classTotal: lastClassTotal ? String(lastClassTotal) : '',
+          gradeTotal: lastGradeTotal ? String(lastGradeTotal) : ''
         }
       });
     }
   },
 
   closeExamModal() {
-    this.setData({ showExamModal: false });
+    this.setData({ showExamModal: false, continuousCreate: false, continuousCreateCount: 0 });
   },
 
   onExamFormInput(e) {
@@ -261,7 +358,15 @@ Page({
 
   onExamDatePick(e) {
     const field = e.currentTarget.dataset.field;
-    this.setData({ [`examForm.${field}`]: e.detail.value });
+    const val = e.detail.value;
+    this.setData({ [`examForm.${field}`]: val });
+
+    if (field === 'startDate') {
+      const d = new Date(val);
+      d.setDate(d.getDate() + 1);
+      const nextDay = d.toISOString().split('T')[0];
+      this.setData({ 'examForm.endDate': nextDay });
+    }
   },
 
   saveExam() {
@@ -273,7 +378,7 @@ Page({
 
     const profileId = this._getActiveProfileId();
     if (this.data.editExamId) {
-      // 编辑
+      // 编辑模式：保存后直接关闭
       const allExams = storage.getExamsAll();
       const idx = allExams.findIndex(e => e.id === this.data.editExamId);
       if (idx !== -1) {
@@ -290,8 +395,12 @@ Page({
         };
         storage.saveExamsAll(allExams);
       }
+      this.setData({ showExamModal: false, continuousCreate: false, continuousCreateCount: 0 });
+      this._saveAndReload();
+      wx.showToast({ title: '已更新', icon: 'success' });
     } else {
-      // 新建
+      // 新建模式：保存后进入连续创建
+      const lastExamTemplate = this._getLastExamSubjectTemplate();
       const newExam = {
         id: 'exam_' + Date.now(),
         profileId,
@@ -303,18 +412,39 @@ Page({
         totalGradeRank: form.totalGradeRank ? Number(form.totalGradeRank) : undefined,
         classTotal: form.classTotal ? Number(form.classTotal) : undefined,
         gradeTotal: form.gradeTotal ? Number(form.gradeTotal) : undefined,
-        subjects: [],
+        subjects: lastExamTemplate,
         createdAt: new Date().toISOString()
       };
       const allExams = storage.getExamsAll();
       allExams.push(newExam);
       storage.saveExamsAll(allExams);
       this.setData({ currentExamId: newExam.id });
-    }
 
-    this.setData({ showExamModal: false });
-    this._saveAndReload();
-    wx.showToast({ title: this.data.editExamId ? '已更新' : '已创建', icon: 'success' });
+      this._saveAndReload();
+
+      // 进入连续创建模式：清空表单，保留班级/年级人数
+      const newCount = this.data.continuousCreateCount + 1;
+      this.setData({
+        continuousCreate: true,
+        continuousCreateCount: newCount,
+        editExamId: '',
+        examForm: {
+          name: '',
+          startDate: form.endDate || '',
+          endDate: '',
+          notes: '',
+          totalClassRank: '',
+          totalGradeRank: '',
+          classTotal: form.classTotal || '',
+          gradeTotal: form.gradeTotal || ''
+        }
+      });
+      wx.showToast({ title: `第 ${newCount} 场已保存`, icon: 'success' });
+    }
+  },
+
+  finishContinuousCreate() {
+    this.setData({ showExamModal: false, continuousCreate: false, continuousCreateCount: 0 });
   },
 
   deleteExam(e) {
@@ -395,9 +525,52 @@ Page({
     this.setData({ showScoreModal: false });
   },
 
+  onMaskTap(e) {
+    // 只有直接点击遮罩层本身才关闭弹窗，防止点击弹窗内 input 时误触发
+    if (e.target.dataset.mask) {
+      this.closeScoreModal();
+    }
+  },
+
   onScoreFormInput(e) {
     const field = e.currentTarget.dataset.field;
-    this.setData({ [`scoreForm.${field}`]: e.detail.value });
+    const value = e.detail.value;
+    this.setData({ [`scoreForm.${field}`]: value });
+    // 新增模式下，科目名变化时自动填充历史满分
+    if (field === 'name' && this.data.editSubjectIndex === null && value.trim()) {
+      const fullScore = this._getLastFullScore(value.trim());
+      if (fullScore) {
+        this.setData({ 'scoreForm.fullScore': String(fullScore) });
+      }
+    }
+  },
+
+  // 根据科目名从历史考试中查找最近一次的满分值
+  _getLastFullScore(subjectName) {
+    if (!subjectName) return null;
+    const exams = storage.getExams(storage.getActiveProfileId()).sort(fmt.compareExamDateDesc);
+    for (let i = 0; i < exams.length; i++) {
+      const subjects = exams[i].subjects || [];
+      const found = subjects.find(s => s.name === subjectName && s.fullScore);
+      if (found) return found.fullScore;
+    }
+    return null;
+  },
+
+  // 从最近一场有科目的考试中继承科目模板（科目名+满分，不继承分数和排名）
+  _getLastExamSubjectTemplate() {
+    const exams = storage.getExams(storage.getActiveProfileId()).sort(fmt.compareExamDateDesc);
+    for (let i = 0; i < exams.length; i++) {
+      const subjects = exams[i].subjects || [];
+      if (subjects.length > 0) {
+        return subjects.map(s => ({
+          name: s.name,
+          score: undefined,
+          fullScore: s.fullScore || 100
+        }));
+      }
+    }
+    return [];
   },
 
   saveSubject() {
@@ -449,32 +622,20 @@ Page({
     const exam = this.data.currentExam;
     if (!exam || !exam.subjects || exam.subjects.length === 0) return;
 
-    // 显示确认弹窗
-    this.setData({
-      showConfirmModal: true,
-      confirmIcon: '🗑️',
-      confirmIconType: 'danger',
-      confirmTitle: '删除科目',
-      confirmMessage: '选择要删除的科目：\n（此操作不可撤销）',
-      confirmOkText: '',
-      confirmOkClass: 'btn-danger',
-      confirmShowCancel: false,
-      _confirmCallback: null
-    });
-
-    // 这里改用 picker 来选择科目删除
+    // 直接弹出 ActionSheet 让用户选择要删除的科目
     const subjectList = exam.subjects.map(s => s.name);
     wx.showActionSheet({
       itemList: subjectList,
       success: (res) => {
         const idx = res.tapIndex;
         const subName = exam.subjects[idx].name;
+        // 选完科目后再弹出确认弹窗
         this.setData({
           showConfirmModal: true,
           confirmIcon: '🗑️',
           confirmIconType: 'danger',
           confirmTitle: '删除科目',
-          confirmMessage: `确定删除「${subName}」吗？`,
+          confirmMessage: `确定删除「${subName}」吗？\n此操作不可撤销。`,
           confirmOkText: '删除',
           confirmOkClass: 'btn-danger',
           confirmShowCancel: true,
@@ -522,20 +683,38 @@ Page({
   },
 
   _refreshAnalysis() {
-    // 雷达图对比列表
+    // 雷达图：所有考试都可选，独立于考试详情的选中状态
     const exams = storage.getExams(this._getActiveProfileId(), true)
       .sort(fmt.compareExamDateDesc);
 
-    const currentExamId = this.data.currentExam ? this.data.currentExam.id : '';
-    const compareExams = exams
-      .filter(ex => ex.id !== currentExamId)
-      .map(ex => ({
-        ...ex,
-        selected: false,
-        totalScore: fmt.getTotalScore(ex.subjects)
-      }));
+    // 加载持久化的雷达选中状态
+    const profileId = this._getActiveProfileId();
+    const radarState = storage.getRadarSelection();
+    let selectedRadarIds = [];
 
-    this.setData({ compareExams });
+    if (radarState.profileId === profileId && Array.isArray(radarState.selectedIds)) {
+      const validIds = new Set(exams.map(e => e.id));
+      selectedRadarIds = radarState.selectedIds.filter(id => validIds.has(id));
+    }
+
+    // 新用户/新档案：默认选中最新考试
+    if (selectedRadarIds.length === 0 && exams.length > 0) {
+      selectedRadarIds = [exams[0].id];
+    }
+
+    const mainId = selectedRadarIds[0] || '';
+
+    // 构建 compareExams（包含所有考试，带 selected/isMain 标记）
+    const compareExams = exams.map(ex => ({
+      ...ex,
+      totalScore: fmt.getTotalScore(ex.subjects),
+      selected: selectedRadarIds.includes(ex.id),
+      isMain: ex.id === mainId
+    }));
+
+    const radarMainExam = exams.find(e => e.id === mainId) || null;
+
+    this.setData({ compareExams, selectedRadarIds, radarMainExam });
 
     // 恢复趋势模式设置
     const modeSettings = storage.getTrendMode();
@@ -628,21 +807,24 @@ Page({
 
   toggleCompare(e) {
     const id = e.currentTarget.dataset.id;
-    const compareExams = this.data.compareExams.map(ex => {
-      if (ex.id === id) {
-        if (!ex.selected && this.data.selectedCompareCount >= 2) return ex;
-        return { ...ex, selected: !ex.selected };
-      }
-      return ex;
+    let selectedRadarIds = [...this.data.selectedRadarIds];
+
+    if (selectedRadarIds.includes(id)) {
+      // 取消选中，selectedRadarIds[0] 始终是主展示
+      selectedRadarIds = selectedRadarIds.filter(eid => eid !== id);
+    } else {
+      if (selectedRadarIds.length >= 3) return; // 最多1主+2对比
+      selectedRadarIds.push(id);
+    }
+
+    // 持久化
+    storage.saveRadarSelection({
+      profileId: this._getActiveProfileId(),
+      selectedIds: selectedRadarIds
     });
 
-    const selectedCount = compareExams.filter(ex => ex.selected).length;
-
-    // 获取当前考试
-    const currentExam = this.data.currentExam;
-    const currentId = currentExam ? currentExam.id : '';
-
-    this.setData({ compareExams, selectedCompareCount: selectedCount });
+    this.setData({ selectedRadarIds });
+    this._refreshAnalysis();
     setTimeout(() => this._drawRadarChart(), 100);
   },
 
@@ -655,11 +837,11 @@ Page({
       const height = res[0].height;
       const ctx = wx.createCanvasContext('radarChart', this);
 
-      const currentExam = this.data.currentExam;
-      const selectedCompares = this.data.compareExams.filter(ex => ex.selected);
-      const allCompareExams = [currentExam, ...selectedCompares].filter(ex => ex && ex.id);
+      const radarMainExam = this.data.radarMainExam;
+      const selectedCompares = this.data.compareExams.filter(ex => ex.selected && !ex.isMain);
+      const allCompareExams = [radarMainExam, ...selectedCompares].filter(Boolean);
 
-      if (allCompareExams.length === 0 || !currentExam) {
+      if (allCompareExams.length === 0 || !radarMainExam) {
         this.setData({ radarEmpty: true, radarEmptyText: '选择考试后查看各科得分率分析', radarBest: null, radarWorst: null });
         chart.drawRadarChart(ctx, { width, height, empty: true });
         return;
@@ -701,8 +883,8 @@ Page({
 
       chart.drawRadarChart(ctx, { width, height, labels, datasets });
 
-      // 计算当前考试的最强/最弱科目
-      const subjects = (currentExam.subjects || []).filter(s => s.fullScore > 0);
+      // 计算主展示考试的最强/最弱科目
+      const subjects = (radarMainExam.subjects || []).filter(s => s.fullScore > 0);
       if (subjects.length >= 3) {
         const sorted = subjects.map(s => ({
           name: s.name, score: s.score, fullScore: s.fullScore,
@@ -832,11 +1014,11 @@ Page({
       const height = res[0].height;
       const ctx = wx.createCanvasContext('zoomRadarChart', this);
 
-      const currentExam = this.data.currentExam;
-      const selectedCompares = this.data.compareExams.filter(ex => ex.selected);
-      const allCompareExams = [currentExam, ...selectedCompares].filter(ex => ex && ex.id);
+      const radarMainExam = this.data.radarMainExam;
+      const selectedCompares = this.data.compareExams.filter(ex => ex.selected && !ex.isMain);
+      const allCompareExams = [radarMainExam, ...selectedCompares].filter(Boolean);
 
-      if (allCompareExams.length === 0 || !currentExam) {
+      if (allCompareExams.length === 0 || !radarMainExam) {
         chart.drawRadarChart(ctx, { width, height, empty: true });
         return;
       }
