@@ -22,9 +22,7 @@
   bindtouchend="onTouchEnd">
 
 <!-- ===== 考试详情页 ===== -->
-<view class="tab-content {{pageSwipeDirection === 'slide-in-right' ? 'slide-in-right' : (pageSwipeDirection === 'slide-in-left' ? 'slide-in-left' : '')}}"
-  wx:if="{{currentTab === 'exam'}}"
-  bindtouchstart="onPageTouchStart" bindtouchend="onPageTouchEnd" bindtouchcancel="onPageTouchEnd">
+<view class="tab-content" wx:if="{{currentTab === 'exam'}}">
 
   <!-- 无考试空状态 -->
   <view class="empty-state" wx:if="{{exams.length === 0}}">
@@ -48,13 +46,10 @@
             <text>{{item.totalScore}}分</text>
           </view>
         </view>
-        <view class="exam-actions">
-          <view class="exam-edit-btn" catchtap="openExamModal" data-id="{{item.id}}">✎</view>
-          <view class="exam-badges">
+        <view class="exam-badges">
           <view class="badge" wx:if="{{item.excluded}}" style="background:#fee;color:#e88a8a;">已排除</view>
           <view class="badge" wx:if="{{item.totalClassRank}}" style="background:rgba(124,169,201,0.12);color:#7ca9c9;">班{{item.totalClassRank}}</view>
           <view class="badge" wx:if="{{item.totalGradeRank}}" style="background:rgba(155,141,196,0.12);color:#9b8dc4;">校{{item.totalGradeRank}}</view>
-        </view>
         </view>
       </view>
 
@@ -69,9 +64,7 @@
 </view>
 
 <!-- ===== 成绩分析页 ===== -->
-<view class="tab-content {{pageSwipeDirection === 'slide-in-right' ? 'slide-in-right' : (pageSwipeDirection === 'slide-in-left' ? 'slide-in-left' : '')}}"
-  wx:if="{{currentTab === 'trend'}}"
-  bindtouchstart="onPageTouchStart" bindtouchend="onPageTouchEnd" bindtouchcancel="onPageTouchEnd">
+<view class="tab-content" wx:if="{{currentTab === 'trend'}}">
 
   <!-- 分析模式切换 -->
   <view class="analysis-tabs">
@@ -126,7 +119,6 @@
       </view>
       <view class="radar-hint">点击橙色标签切换当前考试，其余为对比（最多2场）</view>
     </view>
-    </view>
 
     <canvas canvas-id="radarChart" id="radarChart" class="radar-canvas"></canvas>
 
@@ -156,9 +148,7 @@
 </view>
 
 <!-- ===== 设置页 ===== -->
-<view class="tab-content {{pageSwipeDirection === 'slide-in-right' ? 'slide-in-right' : (pageSwipeDirection === 'slide-in-left' ? 'slide-in-left' : '')}}"
-  wx:if="{{currentTab === 'settings'}}"
-  bindtouchstart="onPageTouchStart" bindtouchend="onPageTouchEnd" bindtouchcancel="onPageTouchEnd">
+<view class="tab-content" wx:if="{{currentTab === 'settings'}}">
 
   <!-- 档案管理 -->
   <view class="card">
@@ -223,12 +213,13 @@
       <view class="setting-btn" bindtap="importData">导入</view>
     </view>
   </view>
-  </view>
 </view>
 
+</view>  <!-- end main-content -->
+
 <!-- ===== 底部考试详情面板 ===== -->
-<view class="detail-mask" wx:if="{{showDetailPanel && currentExam && !showScoreModal && !showExamModal && !showConfirmModal && !showReportModal && !showRenameModal && !showChartZoom}}" bindtap="closeDetailPanel" catchtouchmove=""></view>
-<view class="detail-panel {{panelSlideOut ? 'panel-slide-out-left' : ''}}" wx:if="{{showDetailPanel && currentExam}}">
+<view class="detail-mask" wx:if="{{showDetailPanel && currentExam}}" bindtap="closeDetailPanel" catchtouchmove=""></view>
+<view class="detail-panel" wx:if="{{showDetailPanel && currentExam}}">
   <view class="detail-panel-header" catchtouchmove="">
     <view class="detail-panel-handle"></view>
     <view class="detail-panel-title">{{currentExam.name}}</view>
@@ -246,7 +237,7 @@
       <view class="detail-action-btn danger" catchtap="deleteExam" data-id="{{currentExam.id}}">删除</view>
     </view>
   </view>
-  <scroll-view scroll-y class="detail-panel-body" bindtouchstart="onPanelTouchStart" bindtouchend="onPanelTouchEnd" bindtouchcancel="onPanelTouchEnd">
+  <scroll-view scroll-y class="detail-panel-body">
     <!-- 分享按钮 -->
     <view class="share-btn" bindtap="openShareExamReport">📤 分享考试报告</view>
 
@@ -264,7 +255,7 @@
       </view>
       <view class="subject-cards">
         <view class="subject-card" wx:for="{{currentExam.subjects}}" wx:key="name" data-index="{{index}}" bindtap="editSubject">
-          <view class="subject-card-name">{{item.name}}<text wx:if="{{item.notes}}" class="note-icon">📝</text></view>
+          <view class="subject-card-name">{{item.name}}</view>
           <view class="subject-card-score {{item.score >= 90 ? 'good' : (item.score >= 60 ? 'normal' : 'bad')}}">{{item.score}}</view>
           <view class="subject-card-rank" wx:if="{{item.classRank || item.gradeRank}}">
             <text class="rank-tag" wx:if="{{item.classRank}}">班{{item.classRank}}</text>
@@ -274,7 +265,7 @@
         <!-- 删除单科按钮 -->
         <view class="subject-card delete-subject-btn" wx:if="{{currentExam.subjects.length > 0}}" catchtap="confirmDeleteSubject">
           <view class="subject-card-name" style="color:var(--accent-danger);">🗑 删除科目</view>
-          <view class="subject-card-score normal" style="font-size:24rpx;">点击选择</view>
+          <view class="subject-card-score normal" style="font-size:24rpx;">长按选择</view>
         </view>
         <view class="add-subject-btn" bindtap="openScoreModal">
           <text style="font-size:48rpx;">+</text>
@@ -291,15 +282,8 @@
 <view class="modal-mask" wx:if="{{showExamModal}}">
   <view class="modal" catchtap="" catchtouchmove="">
     <view class="modal-header">
-      <view class="modal-title">{{editExamId ? '编辑考试' : (continuousCreate ? '继续添加考试' : '新建考试')}}</view>
+      <view class="modal-title">{{editExamId ? '编辑考试' : '新建考试'}}</view>
       <view class="modal-close" bindtap="closeExamModal">✕</view>
-    </view>
-    <!-- 连续创建成功提示 -->
-    <view class="continuous-banner" wx:if="{{continuousCreate}}">
-      <view class="continuous-banner-text">已成功添加 {{continuousCreateCount}} 场考试</view>
-      <view class="continuous-banner-actions">
-        <view class="continuous-finish-btn" bindtap="finishContinuousCreate">完成</view>
-      </view>
     </view>
     <view class="modal-body">
       <view class="form-group">
@@ -346,14 +330,14 @@
       </view>
     </view>
     <view class="modal-footer">
-      <view class="btn btn-secondary" bindtap="{{continuousCreate ? 'finishContinuousCreate' : 'closeExamModal'}}">{{continuousCreate ? '完成' : '取消'}}</view>
-      <view class="btn btn-primary" bindtap="saveExam">{{editExamId ? '保存' : (continuousCreate ? '添加下一场' : '保存')}}</view>
+      <view class="btn btn-secondary" bindtap="closeExamModal">取消</view>
+      <view class="btn btn-primary" bindtap="saveExam">{{editExamId ? '保存' : '创建'}}</view>
     </view>
   </view>
 </view>
 
 <!-- 添加/编辑成绩弹窗 -->
-<view class="modal-mask" wx:if="{{showScoreModal}}" data-mask="score" bindtap="onMaskTap" catchtouchmove="">
+<view class="modal-mask" wx:if="{{showScoreModal}}" bindtap="closeScoreModal">
   <view class="modal" catchtap="" catchtouchmove="">
     <view class="modal-header">
       <view class="modal-title">{{editSubjectIndex !== null ? '编辑成绩' : '添加成绩'}}</view>
@@ -475,7 +459,7 @@
         <canvas canvas-id="zoomTrendChart" id="zoomTrendChart" class="zoom-trend-canvas"></canvas>
       </block>
       <block wx:if="{{chartZoomType === 'radar'}}">
-        <view class="radar-title">主展示：<text style="color:var(--accent-warm);font-weight:600;">{{radarMainExam ? radarMainExam.name : '未选择'}}</text></view>
+        <view class="radar-title">当前：<text class="radar-current-name">{{currentExam ? currentExam.name : '未选择'}}</text></view>
         <canvas canvas-id="zoomRadarChart" id="zoomRadarChart" class="zoom-radar-canvas"></canvas>
       </block>
     </view>
