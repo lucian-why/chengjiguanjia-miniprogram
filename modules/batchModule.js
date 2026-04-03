@@ -1,16 +1,16 @@
-/**
- * 批量填写模块
- * 负责：批量填写/修改多科成绩
- * 对应原代码 L508-630 区段
- */
 const storage = require('../utils/storage');
 
 function createBatchModule(page) {
-
   function noop() {}
 
+  function getCurrentExamSnapshot() {
+    const currentExamId = page.data.currentExamId;
+    if (!currentExamId) return null;
+    return storage.getExamsAll().find(exam => exam.id === currentExamId) || null;
+  }
+
   function openBatchModal() {
-    const exam = page.data.currentExam;
+    const exam = getCurrentExamSnapshot();
     if (!exam) return;
 
     const subjects = (exam.subjects || []).map(s => ({
@@ -25,7 +25,12 @@ function createBatchModule(page) {
       subjects.push({ name: '', score: '', classRank: '', gradeRank: '', fullScore: 100 });
     }
 
-    page.setData({ showBatchModal: true, batchList: subjects, newBatchSubject: '' });
+    page.setData({
+      currentExam: exam,
+      showBatchModal: true,
+      batchList: subjects,
+      newBatchSubject: ''
+    });
   }
 
   function closeBatchModal() {
@@ -44,12 +49,14 @@ function createBatchModule(page) {
       return;
     }
 
-    // 从历史考试查找满分
-    const allExams = storage.getExamsAll().filter(ex => ex.id !== page.data.currentExam.id);
-    let fullScore = 100;
+    const allExams = storage.getExamsAll().filter(ex => ex.id !== page.data.currentExamId);
+    let fullScore = storage.getRememberedSubjectFullScore(page._getActiveProfileId(), name) || 100;
     for (const exam of allExams) {
       const found = (exam.subjects || []).find(s => s.name === name);
-      if (found && found.fullScore) { fullScore = found.fullScore; break; }
+      if (found && found.fullScore) {
+        fullScore = found.fullScore;
+        break;
+      }
     }
 
     const list = page.data.batchList.concat([{ name, score: '', classRank: '', gradeRank: '', fullScore }]);
@@ -82,19 +89,19 @@ function createBatchModule(page) {
 
     for (const s of validSubjects) {
       if (s.score === '' || isNaN(Number(s.score))) {
-        wx.showToast({ title: `「${s.name}」成绩无效`, icon: 'none' });
+        wx.showToast({ title: `“${s.name}”成绩无效`, icon: 'none' });
         return;
       }
     }
 
-    const exam = page.data.currentExam;
-    if (!exam) return;
-
-    const allExams = storage.getExamsAll();
-    const target = allExams.find(ex => ex.id === exam.id);
+    const target = getCurrentExamSnapshot();
     if (!target) return;
 
-    target.subjects = validSubjects.map(s => ({
+    const allExams = storage.getExamsAll();
+    const currentExamIndex = allExams.findIndex(ex => ex.id === target.id);
+    if (currentExamIndex === -1) return;
+
+    allExams[currentExamIndex].subjects = validSubjects.map(s => ({
       name: s.name.trim(),
       score: Number(s.score),
       fullScore: Number(s.fullScore) || 100,

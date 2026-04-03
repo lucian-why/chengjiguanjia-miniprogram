@@ -3,6 +3,7 @@ const PROFILES_KEY = 'xueji_profiles';
 const ACTIVE_PROFILE_KEY = 'xueji_active_profile';
 const TREND_MODE_KEY = 'xueji_trend_mode';
 const RADAR_SELECTION_KEY = 'xueji_radar_selection';
+const FORM_MEMORY_KEY = 'xueji_form_memory';
 
 function readJSON(key, fallback) {
   try {
@@ -140,6 +141,65 @@ function migrateProfilesIfNeeded() {
   }
 }
 
+function getFormMemoryAll() {
+  return readJSON(FORM_MEMORY_KEY, {});
+}
+
+function saveFormMemoryAll(memory) {
+  writeJSON(FORM_MEMORY_KEY, memory);
+}
+
+function getProfileMemory(profileId) {
+  const memory = getFormMemoryAll();
+  return memory[profileId] || { examDefaults: {}, subjectFullScores: {} };
+}
+
+function rememberExamDefaults(profileId, payload) {
+  if (!profileId || !payload) return;
+
+  const memory = getFormMemoryAll();
+  const profileMemory = memory[profileId] || { examDefaults: {}, subjectFullScores: {} };
+  const nextDefaults = { ...profileMemory.examDefaults };
+
+  if (payload.classTotal) nextDefaults.classTotal = Number(payload.classTotal);
+  if (payload.gradeTotal) nextDefaults.gradeTotal = Number(payload.gradeTotal);
+
+  memory[profileId] = {
+    ...profileMemory,
+    examDefaults: nextDefaults
+  };
+  saveFormMemoryAll(memory);
+}
+
+function getRememberedExamDefaults(profileId) {
+  return getProfileMemory(profileId).examDefaults || {};
+}
+
+function rememberSubjectFullScore(profileId, subjectName, fullScore) {
+  const normalizedName = String(subjectName || '').trim();
+  if (!profileId || !normalizedName || !fullScore) return;
+
+  const memory = getFormMemoryAll();
+  const profileMemory = memory[profileId] || { examDefaults: {}, subjectFullScores: {} };
+
+  memory[profileId] = {
+    ...profileMemory,
+    subjectFullScores: {
+      ...(profileMemory.subjectFullScores || {}),
+      [normalizedName]: Number(fullScore)
+    }
+  };
+  saveFormMemoryAll(memory);
+}
+
+function getRememberedSubjectFullScore(profileId, subjectName) {
+  const normalizedName = String(subjectName || '').trim();
+  if (!profileId || !normalizedName) return null;
+
+  const remembered = getProfileMemory(profileId).subjectFullScores?.[normalizedName];
+  return remembered ? Number(remembered) : null;
+}
+
 module.exports = {
   EXAMS_KEY,
   PROFILES_KEY,
@@ -159,5 +219,9 @@ module.exports = {
   getTrendMode,
   saveRadarSelection,
   getRadarSelection,
-  migrateProfilesIfNeeded
+  migrateProfilesIfNeeded,
+  rememberExamDefaults,
+  getRememberedExamDefaults,
+  rememberSubjectFullScore,
+  getRememberedSubjectFullScore
 };

@@ -23,7 +23,13 @@ module.exports._global = {
   hasDemoData: false,
 
   // 滑动动画方向
-  _slideDirection: ''
+  _slideDirection: '',
+
+  // 成绩全屏视图
+  showScoreView: false,
+
+  // 面板左滑动画状态
+  _panelSlidingOut: false
 };
 
 // 考试模块 data

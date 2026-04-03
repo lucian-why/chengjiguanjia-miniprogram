@@ -1,13 +1,14 @@
-/**
- * 考试管理模块
- * 负责：考试列表选择、新建/编辑/删除考试、排除恢复考试
- * 对应原代码 L175-361 区段
- */
 const storage = require('../utils/storage');
 
 function createExamModule(page) {
+  function addDays(dateString, days) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '';
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split('T')[0];
+  }
 
-  /** 选择考试 → 打开/关闭详情面板 */
   function selectExam(e) {
     const id = e.currentTarget.dataset.id;
     if (page.data.currentExamId === id) {
@@ -20,25 +21,32 @@ function createExamModule(page) {
     page._refreshAnalysis();
   }
 
-  /** 关闭详情面板 */
   function closeDetailPanel() {
-    page.setData({ showDetailPanel: false, currentExamId: '', currentExam: null });
+    page.setData({ showDetailPanel: false, currentExamId: '', currentExam: null, showScoreView: false });
   }
 
-  /** 刷新当前选中考试的引用 */
   function _refreshCurrentExam() {
     const id = page.data.currentExamId;
-    if (!id) { page.setData({ currentExam: null }); return; }
+    if (!id) {
+      page.setData({ currentExam: null, showScoreView: false });
+      return;
+    }
     const exam = page.data.exams.find(e => e.id === id) || null;
-    page.setData({ currentExam: exam });
+    page.setData({
+      currentExam: exam,
+      showScoreView: page.data.showScoreView || false,
+      showDetailPanel: page.data.showDetailPanel || false
+    });
   }
 
-  /** 打开新建/编辑考试弹窗 */
   function openExamModal(e) {
-    const id = e.currentTarget ? e.currentTarget.dataset.id : '';
+    const id = e && e.currentTarget ? e.currentTarget.dataset.id : '';
+    page._examEndDateManual = false;
+
     if (id) {
-      const exam = page.data.exams.find(ex => ex.id === id);
+      const exam = page.data.exams.find(item => item.id === id);
       if (!exam) return;
+      page._examEndDateManual = true;
       page.setData({
         editExamId: id,
         showExamModal: true,
@@ -53,13 +61,25 @@ function createExamModule(page) {
           gradeTotal: exam.gradeTotal ? String(exam.gradeTotal) : ''
         }
       });
-    } else {
-      page.setData({
-        editExamId: '',
-        showExamModal: true,
-        examForm: { name: '', startDate: '', endDate: '', notes: '', totalClassRank: '', totalGradeRank: '', classTotal: '', gradeTotal: '' }
-      });
+      return;
     }
+
+    const rememberedDefaults = storage.getRememberedExamDefaults(page._getActiveProfileId());
+    const today = new Date().toISOString().split('T')[0];
+    page.setData({
+      editExamId: '',
+      showExamModal: true,
+      examForm: {
+        name: '',
+        startDate: today,
+        endDate: addDays(today, 1),
+        notes: '',
+        totalClassRank: '',
+        totalGradeRank: '',
+        classTotal: rememberedDefaults.classTotal ? String(rememberedDefaults.classTotal) : '',
+        gradeTotal: rememberedDefaults.gradeTotal ? String(rememberedDefaults.gradeTotal) : ''
+      }
+    });
   }
 
   function closeExamModal() {
@@ -73,10 +93,26 @@ function createExamModule(page) {
 
   function onExamDatePick(e) {
     const field = e.currentTarget.dataset.field;
-    page.setData({ [`examForm.${field}`]: e.detail.value });
+    const value = e.detail.value;
+
+    if (field === 'endDate') {
+      page._examEndDateManual = true;
+      page.setData({ 'examForm.endDate': value });
+      return;
+    }
+
+    if (field === 'startDate') {
+      const updates = { 'examForm.startDate': value };
+      if (!page.data.editExamId && !page._examEndDateManual) {
+        updates['examForm.endDate'] = addDays(value, 1);
+      }
+      page.setData(updates);
+      return;
+    }
+
+    page.setData({ [`examForm.${field}`]: value });
   }
 
-  /** 保存考试（新建 or 编辑） */
   function saveExam() {
     const form = page.data.examForm;
     if (!form.name.trim()) {
@@ -85,8 +121,12 @@ function createExamModule(page) {
     }
 
     const profileId = page._getActiveProfileId();
+    storage.rememberExamDefaults(profileId, {
+      classTotal: form.classTotal ? Number(form.classTotal) : null,
+      gradeTotal: form.gradeTotal ? Number(form.gradeTotal) : null
+    });
+
     if (page.data.editExamId) {
-      // 编辑
       const allExams = storage.getExamsAll();
       const idx = allExams.findIndex(e => e.id === page.data.editExamId);
       if (idx !== -1) {
@@ -104,7 +144,6 @@ function createExamModule(page) {
         storage.saveExamsAll(allExams);
       }
     } else {
-      // 新建
       const newExam = {
         id: 'exam_' + Date.now(),
         profileId,
@@ -130,7 +169,6 @@ function createExamModule(page) {
     wx.showToast({ title: page.data.editExamId ? '已更新' : '已创建', icon: 'success' });
   }
 
-  /** 删除考试（带确认弹窗） */
   function deleteExam(e) {
     const id = e.currentTarget.dataset.id;
     const exam = page.data.exams.find(ex => ex.id === id);
@@ -141,7 +179,7 @@ function createExamModule(page) {
       confirmIcon: '⚠️',
       confirmIconType: 'danger',
       confirmTitle: '删除考试',
-      confirmMessage: `确定要删除「${exam.name}」吗？\n此操作不可撤销。`,
+      confirmMessage: `确定要删除“${exam.name}”吗？\n此操作不可撤销。`,
       confirmOkText: '删除',
       confirmOkClass: 'btn-danger',
       confirmShowCancel: true,
@@ -155,7 +193,6 @@ function createExamModule(page) {
     });
   }
 
-  /** 切换考试排除/恢复统计 */
   function toggleExclude(e) {
     const id = e.currentTarget.dataset.id;
     const allExams = storage.getExamsAll();
@@ -166,8 +203,6 @@ function createExamModule(page) {
     page._saveAndReload();
     wx.showToast({ title: exam.excluded ? '已排除' : '已恢复', icon: 'none' });
   }
-
-  // _refreshCurrentExam 通过 return 导出，由 index.js 的 Object.assign 挂载到 page
 
   return {
     selectExam,

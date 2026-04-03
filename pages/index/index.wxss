@@ -6,7 +6,7 @@ view, text, navigator, image {
 /* ===== 档案选择器 ===== */
 .profile-bar {
   padding: 16rpx 24rpx;
-  background: var(--bg-card);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 252, 0.94));
   border-bottom: 1rpx solid var(--border-color);
 }
 
@@ -14,22 +14,23 @@ view, text, navigator, image {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
-  padding: 10rpx 24rpx;
-  background: var(--bg-primary);
-  border: 1rpx solid var(--border-color);
-  border-radius: 16rpx;
+  gap: 12rpx;
+  padding: 14rpx 26rpx;
+  background: linear-gradient(135deg, rgba(124, 169, 201, 0.12), rgba(111, 158, 199, 0.04));
+  border: 1rpx solid rgba(124, 169, 201, 0.24);
+  border-radius: 18rpx;
+  box-shadow: 0 8rpx 18rpx rgba(95, 158, 199, 0.08);
 }
 
 .profile-picker-name {
   font-size: 26rpx;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
 .profile-picker-arrow {
   font-size: 20rpx;
-  color: var(--text-secondary);
+  color: var(--accent-blue);
 }
 
 /* ===== 主内容区域（支持滑动切换）===== */
@@ -63,24 +64,28 @@ view, text, navigator, image {
   display: flex;
   gap: 12rpx;
   padding: 16rpx 24rpx;
-  background: var(--bg-card);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 248, 245, 0.92));
   box-shadow: var(--shadow-soft);
 }
 
 .tab {
   flex: 1;
   text-align: center;
-  padding: 16rpx 0;
-  border-radius: 16rpx;
+  padding: 18rpx 0;
+  border-radius: 18rpx;
   font-size: 28rpx;
   color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1rpx solid rgba(124, 169, 201, 0.12);
   transition: all 0.2s;
 }
 
 .tab.active {
-  background: var(--text-primary);
+  background: linear-gradient(135deg, #5f9ec7, #69b6a6);
   color: #fff;
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 0 10rpx 24rpx rgba(95, 158, 199, 0.22);
+  border-color: transparent;
 }
 
 /* ===== 标签内容 ===== */
@@ -96,18 +101,19 @@ view, text, navigator, image {
 }
 
 .exam-card {
-  background: var(--bg-card);
-  border-radius: 20rpx;
+  background: linear-gradient(180deg, #fffdf9, #fff7ef);
+  border-radius: 24rpx;
   margin-bottom: 16rpx;
-  box-shadow: var(--shadow-soft);
-  border: 2rpx solid var(--border-color);
+  box-shadow: 0 12rpx 30rpx rgba(181, 129, 77, 0.08);
+  border: 2rpx solid rgba(232, 168, 124, 0.14);
   overflow: hidden;
   transition: all 0.2s;
 }
 
 .exam-card.is-active {
-  border-color: var(--accent-warm);
-  box-shadow: var(--shadow-card);
+  border-color: #e5a06d;
+  box-shadow: 0 16rpx 36rpx rgba(181, 129, 77, 0.16);
+  transform: translateY(-2rpx);
 }
 
 .exam-card.is-excluded {
@@ -141,8 +147,8 @@ view, text, navigator, image {
 
 .exam-meta {
   font-size: 22rpx;
-  color: var(--text-secondary);
-  margin-top: 4rpx;
+  color: #8b7666;
+  margin-top: 8rpx;
 }
 
 .exam-actions {
@@ -175,8 +181,8 @@ view, text, navigator, image {
 
 .badge {
   font-size: 20rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 12rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
   white-space: nowrap;
 }
 
@@ -392,18 +398,18 @@ view, text, navigator, image {
 .detail-action-btn {
   flex: 1;
   text-align: center;
-  padding: 12rpx 0;
+  padding: 14rpx 0;
   font-size: 24rpx;
-  color: var(--text-secondary);
-  background: var(--bg-primary);
-  border-radius: 12rpx;
-  border: 1rpx solid var(--border-color);
+  color: #9a6845;
+  background: linear-gradient(180deg, #fffaf4, #fff2e4);
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(232, 168, 124, 0.28);
 }
 
 .detail-action-btn.danger {
   color: var(--accent-danger);
-  border-color: #fcc;
-  background: #fee;
+  border-color: rgba(232, 138, 138, 0.28);
+  background: linear-gradient(180deg, #fff7f7, #ffeeee);
 }
 
 .detail-panel-score {
@@ -515,12 +521,12 @@ view, text, navigator, image {
   left: 50%;
   transform: translateX(-50%);
   padding: 20rpx 64rpx;
-  background: var(--text-primary);
+  background: linear-gradient(135deg, #e5a06d, #d7835f);
   color: #fff;
   border-radius: 40rpx;
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 32rpx rgba(45, 42, 38, 0.2);
+  box-shadow: 0 14rpx 32rpx rgba(215, 131, 95, 0.28);
   z-index: 50;
 }
 
@@ -584,25 +590,26 @@ view, text, navigator, image {
 /* ===== 成绩分析 ===== */
 .analysis-tabs {
   display: flex;
-  gap: 8rpx;
+  gap: 12rpx;
   margin-bottom: 20rpx;
   flex-wrap: wrap;
 }
 
 .analysis-tab {
-  padding: 12rpx 24rpx;
-  border: 1rpx solid var(--border-color);
-  background: var(--bg-card);
-  border-radius: 28rpx;
+  padding: 14rpx 24rpx;
+  border: 1rpx solid rgba(124, 169, 201, 0.18);
+  background: linear-gradient(180deg, #ffffff, #f6fbff);
+  border-radius: 999rpx;
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: #5c7184;
   transition: all 0.2s;
 }
 
 .analysis-tab.active {
-  background: var(--text-primary);
+  background: linear-gradient(135deg, #7198d8, #8f84cb);
   color: #fff;
-  border-color: var(--text-primary);
+  border-color: transparent;
+  box-shadow: 0 10rpx 24rpx rgba(113, 152, 216, 0.2);
 }
 
 /* 科目 tab 横向滚动 */
@@ -618,19 +625,19 @@ view, text, navigator, image {
 
 .chart-tab {
   display: inline-block;
-  padding: 10rpx 24rpx;
-  border: 1rpx solid var(--border-color);
-  background: var(--bg-card);
-  border-radius: 28rpx;
+  padding: 12rpx 24rpx;
+  border: 1rpx solid rgba(124, 169, 201, 0.18);
+  background: linear-gradient(180deg, #ffffff, #f6fbff);
+  border-radius: 999rpx;
   font-size: 24rpx;
-  color: var(--text-secondary);
+  color: #5c7184;
   transition: all 0.2s;
 }
 
 .chart-tab.active {
-  background: var(--text-primary);
+  background: linear-gradient(135deg, #7ca9c9, #8f84cb);
   color: #fff;
-  border-color: var(--text-primary);
+  border-color: transparent;
 }
 
 /* 排名类型切换 */
@@ -641,18 +648,18 @@ view, text, navigator, image {
 }
 
 .rank-type-option {
-  padding: 10rpx 28rpx;
-  border: 1rpx solid var(--border-color);
-  border-radius: 28rpx;
+  padding: 12rpx 28rpx;
+  border: 1rpx solid rgba(124, 169, 201, 0.18);
+  border-radius: 999rpx;
   font-size: 24rpx;
-  color: var(--text-secondary);
-  background: var(--bg-card);
+  color: #5c7184;
+  background: linear-gradient(180deg, #ffffff, #f6fbff);
 }
 
 .rank-type-option.active {
-  background: var(--accent-blue);
+  background: linear-gradient(135deg, #6cabc9, #7f92da);
   color: #fff;
-  border-color: var(--accent-blue);
+  border-color: transparent;
 }
 
 /* 图表 Canvas */
@@ -822,12 +829,12 @@ view, text, navigator, image {
   height: 56rpx;
   border: 1rpx solid var(--border-color);
   border-radius: 12rpx;
-  background: var(--bg-card);
+  background: linear-gradient(180deg, #ffffff, #f5faff);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 28rpx;
-  color: var(--text-secondary);
+  color: #6289a7;
   z-index: 5;
 }
 
@@ -1323,11 +1330,12 @@ view, text, navigator, image {
 }
 
 .batch-inline-btn {
-  padding: 6rpx 20rpx;
+  padding: 8rpx 22rpx;
   font-size: 24rpx;
-  color: #c07a50;
-  border: 1rpx solid rgba(232, 168, 124, 0.4);
-  border-radius: 20rpx;
+  color: #b56f42;
+  border: 1rpx solid rgba(232, 168, 124, 0.35);
+  border-radius: 999rpx;
+  background: rgba(255, 243, 230, 0.95);
   white-space: nowrap;
 }
 
@@ -1456,4 +1464,157 @@ view, text, navigator, image {
 
 .batch-add-btn:active {
   opacity: 0.85;
+}
+
+/* ===== 成绩全屏视图（左滑进入） ===== */
+.score-view-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 600;
+  animation: fadeIn 0.2s ease;
+}
+
+.score-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-primary);
+  z-index: 601;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes scoreViewIn {
+  from { transform: translateX(100%); opacity: 0.5; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes scoreViewOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0.5; }
+}
+
+.score-view-in {
+  animation: scoreViewIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.score-view-out {
+  animation: scoreViewOut 0.25s ease-in forwards;
+}
+
+.score-view-header {
+  flex-shrink: 0;
+  padding: 20rpx 32rpx 16rpx;
+  background: var(--bg-card);
+  border-bottom: 1rpx solid var(--border-color);
+}
+
+.score-view-back {
+  display: inline-flex;
+  align-items: center;
+  font-size: 28rpx;
+  color: var(--accent-blue);
+  margin-bottom: 12rpx;
+}
+
+.score-view-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8rpx;
+}
+
+.score-view-summary {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.score-view-body {
+  flex: 1;
+  padding: 24rpx 28rpx 120rpx;
+}
+
+/* 成绩全屏视图卡片网格（更大尺寸） */
+.score-view-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.score-view-card {
+  width: calc((100% - 20rpx) / 2);
+  background: var(--bg-primary);
+  border-radius: 20rpx;
+  padding: 24rpx 20rpx;
+  text-align: center;
+  border: 2rpx solid var(--border-color);
+  transition: all 0.2s;
+}
+
+.score-view-card:active {
+  border-color: var(--accent-warm);
+}
+
+.score-view-card-name {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+  margin-bottom: 12rpx;
+}
+
+.score-view-card-score-wrap {
+  margin-bottom: 8rpx;
+}
+
+.score-view-card-score {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.score-view-card-full {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.score-view-card-rate {
+  font-size: 24rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.score-view-card-rate.good { color: var(--accent-green); }
+.score-view-card-rate.normal { color: var(--text-primary); }
+.score-view-card-rate.bad { color: var(--accent-danger); }
+
+.score-view-card-rank {
+  display: flex;
+  gap: 6rpx;
+  justify-content: center;
+}
+
+.score-view-card-add {
+  border: 2rpx dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.score-view-card-add-icon {
+  font-size: 56rpx;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.score-view-card-add .score-view-card-name {
+  color: var(--text-secondary);
+  font-size: 24rpx;
 }

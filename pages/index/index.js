@@ -1,5 +1,5 @@
 /**
- * 成绩管家 - Main page (refactored: thin glue layer)
+ * 鎴愮哗绠″ - Main page (refactored: thin glue layer)
  * Architecture: module factory + Object.assign mixin in onLoad
  */
 
@@ -44,6 +44,7 @@ Page({
       Object.assign(this, createDataManager(this));
     }
 
+    storage.migrateProfilesIfNeeded();
     this._loadData();
     this._checkFirstLaunch();
   },
@@ -55,7 +56,7 @@ Page({
   onShareAppMessage() {
     const profile = this.data.profiles[this.data.activeProfileIndex];
     return {
-      title: '成绩管家 - ' + (profile ? profile.name : '我的成绩'),
+      title: '鎴愮哗绠″ - ' + (profile ? profile.name : '鎴戠殑鎴愮哗'),
       path: '/pages/index/index'
     };
   },
@@ -88,11 +89,16 @@ Page({
       profileNames,
       exams,
       subjectNames,
-      hasDemoData
+      hasDemoData,
+      showScoreView: this.data.showScoreView || false,
+      showDetailPanel: this.data.showDetailPanel || false
     });
 
     if (!this.data.currentExamId && exams.length > 0) {
-      this.setData({ currentExamId: exams[0].id });
+      this.setData({
+        currentExamId: exams[0].id,
+        showScoreView: this.data.showScoreView || false
+      });
     }
 
     this._refreshCurrentExam();
@@ -117,19 +123,61 @@ Page({
       tab = e;
     }
     if (!tab) return;
-    this.setData({ currentTab: tab, showDetailPanel: false });
+    this.setData({ currentTab: tab, showDetailPanel: false, showScoreView: false });
     if (tab === 'trend') {
       this.$nextTick && this.$nextTick(() => this._drawChart());
       setTimeout(() => this._drawChart(), 300);
     }
   },
 
-  // ======================== 滑动切换标签页 ========================
+  // ======================== 婊戝姩鍒囨崲鏍囩椤?========================
   _touchStartX: 0,
   _touchStartY: 0,
   _touchMoving: false,
   _tabIndex: { exam: 0, trend: 1, settings: 2 },
   _tabKeys: ['exam', 'trend', 'settings'],
+
+  // ======================== 闈㈡澘宸︽粦鎵嬪娍 ========================
+  _panelTouchStartX: 0,
+  _panelTouchStartY: 0,
+  _panelTouchMoving: false,
+
+  onPanelTouchStart(e) {
+    this._panelTouchStartX = e.touches[0].clientX;
+    this._panelTouchStartY = e.touches[0].clientY;
+    this._panelTouchMoving = false;
+  },
+
+  onPanelTouchMove(e) {
+    this._panelTouchMoving = true;
+  },
+
+  onPanelTouchEnd(e) {
+    if (!this._panelTouchMoving) return;
+    var endX = e.changedTouches[0].clientX;
+    var endY = e.changedTouches[0].clientY;
+    var deltaY = Math.abs(endY - this._panelTouchStartY);
+
+    if (deltaY > 50) return;
+
+    var deltaX = endX - this._panelTouchStartX;
+    var THRESHOLD = 80;
+
+    if (deltaX < -THRESHOLD) {
+      this.setData({ _panelSlidingOut: true });
+      setTimeout(() => {
+        this.setData({
+          showDetailPanel: false,
+          showScoreView: true,
+          _panelSlidingOut: false
+        });
+      }, 250);
+    }
+  },
+
+  closeScoreView() {
+    this.setData({ showScoreView: false });
+  },
 
   onTouchStart(e) {
     this._touchStartX = e.touches[0].clientX;
@@ -143,6 +191,7 @@ Page({
 
   onTouchEnd(e) {
     if (!this._touchMoving) return;
+    if (this.data.showScoreView) return;
     var endX = e.changedTouches[0].clientX;
     var endY = e.changedTouches[0].clientY;
     var deltaY = Math.abs(endY - this._touchStartY);
@@ -158,7 +207,8 @@ Page({
         this.setData({
           _slideDirection: 'left',
           currentTab: this._tabKeys[cur + 1],
-          showDetailPanel: false
+          showDetailPanel: false,
+          showScoreView: false
         });
         if (this._tabKeys[cur + 1] === 'trend') {
           this.$nextTick && this.$nextTick(() => this._drawChart());
@@ -172,7 +222,8 @@ Page({
         this.setData({
           _slideDirection: 'right',
           currentTab: this._tabKeys[cur2 - 1],
-          showDetailPanel: false
+          showDetailPanel: false,
+          showScoreView: false
         });
         if (this._tabKeys[cur2 - 1] === 'trend') {
           this.$nextTick && this.$nextTick(() => this._drawChart());

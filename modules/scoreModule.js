@@ -1,14 +1,20 @@
-/**
- * 成绩管理模块
- * 负责：单科添加/编辑/删除成绩
- * 对应原代码 L363-506 区段
- */
 const storage = require('../utils/storage');
 
 function createScoreModule(page) {
+  function applyRememberedSubjectFullScore(subjectName) {
+    const remembered = storage.getRememberedSubjectFullScore(page._getActiveProfileId(), subjectName);
+    if (!remembered) return;
 
-  /** 打开添加成绩弹窗 */
-  function openScoreModal(e) {
+    const currentValue = page.data.scoreForm.fullScore;
+    const lastAutoValue = page._scoreFullAutoValue || '100';
+    if (currentValue && currentValue !== '100' && currentValue !== lastAutoValue) return;
+
+    page._scoreFullAutoValue = String(remembered);
+    page.setData({ 'scoreForm.fullScore': String(remembered) });
+  }
+
+  function openScoreModal() {
+    page._scoreFullAutoValue = '100';
     page.setData({
       editSubjectIndex: null,
       showScoreModal: true,
@@ -16,12 +22,12 @@ function createScoreModule(page) {
     });
   }
 
-  /** 编辑已有科目成绩 */
   function editSubject(e) {
     const index = e.currentTarget.dataset.index;
     const exam = page.data.currentExam;
     if (!exam || !exam.subjects || !exam.subjects[index]) return;
     const sub = exam.subjects[index];
+    page._scoreFullAutoValue = '';
     page.setData({
       editSubjectIndex: index,
       showScoreModal: true,
@@ -42,10 +48,17 @@ function createScoreModule(page) {
 
   function onScoreFormInput(e) {
     const field = e.currentTarget.dataset.field;
-    page.setData({ [`scoreForm.${field}`]: e.detail.value });
+    const value = e.detail.value;
+    page.setData({ [`scoreForm.${field}`]: value });
+
+    if (field === 'name') {
+      applyRememberedSubjectFullScore(value);
+    }
+    if (field === 'fullScore' && value !== page._scoreFullAutoValue) {
+      page._scoreFullAutoValue = '';
+    }
   }
 
-  /** 保存科目成绩 */
   function saveSubject() {
     const form = page.data.scoreForm;
     if (!form.name.trim()) {
@@ -75,6 +88,8 @@ function createScoreModule(page) {
       notes: form.notes.trim()
     };
 
+    storage.rememberSubjectFullScore(page._getActiveProfileId(), subjectData.name, subjectData.fullScore);
+
     if (page.data.editSubjectIndex !== null && page.data.editSubjectIndex < target.subjects.length) {
       target.subjects[page.data.editSubjectIndex] = subjectData;
     } else {
@@ -87,7 +102,6 @@ function createScoreModule(page) {
     wx.showToast({ title: '已保存', icon: 'success' });
   }
 
-  /** 删除科目（先选科再确认） */
   function confirmDeleteSubject() {
     const exam = page.data.currentExam;
     if (!exam || !exam.subjects || exam.subjects.length === 0) return;
@@ -115,7 +129,7 @@ function createScoreModule(page) {
           confirmIcon: '🗑️',
           confirmIconType: 'danger',
           confirmTitle: '删除科目',
-          confirmMessage: `确定删除「${subName}」吗？`,
+          confirmMessage: `确定删除“${subName}”吗？`,
           confirmOkText: '删除',
           confirmOkClass: 'btn-danger',
           confirmShowCancel: true,
@@ -125,7 +139,6 @@ function createScoreModule(page) {
     });
   }
 
-  /** 执行删除科目 */
   function _doDeleteSubject(subjectIndex) {
     const exam = page.data.currentExam;
     if (!exam) return;
