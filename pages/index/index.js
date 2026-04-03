@@ -95,7 +95,12 @@ Page({
 
     // 重命名
     renameValue: '',
-    _renameProfileIndex: null
+    _renameProfileIndex: null,
+
+    // 批量填写
+    showBatchModal: false,
+    batchList: [],          // [{name, score, classRank, gradeRank, fullScore}]
+    newBatchSubject: ''     // 新增科目名输入
   },
 
   onLoad() {
@@ -659,6 +664,130 @@ Page({
     storage.saveExamsAll(allExams);
     this._saveAndReload();
     wx.showToast({ title: '已删除', icon: 'success' });
+  },
+
+  // ======================== 批量填写 ========================
+
+  noop() {},
+
+  openBatchModal() {
+    const exam = this.data.currentExam;
+    if (!exam) return;
+
+    // 从当前考试科目初始化列表
+    const subjects = (exam.subjects || []).map(s => ({
+      name: s.name,
+      score: s.score !== undefined ? String(s.score) : '',
+      classRank: s.classRank ? String(s.classRank) : '',
+      gradeRank: s.gradeRank ? String(s.gradeRank) : '',
+      fullScore: s.fullScore || 100
+    }));
+
+    // 如果没有科目，添加一行空白
+    if (subjects.length === 0) {
+      subjects.push({ name: '', score: '', classRank: '', gradeRank: '', fullScore: 100 });
+    }
+
+    this.setData({
+      showBatchModal: true,
+      batchList: subjects,
+      newBatchSubject: ''
+    });
+  },
+
+  closeBatchModal() {
+    this.setData({ showBatchModal: false, batchList: [], newBatchSubject: '' });
+  },
+
+  onBatchInput(e) {
+    const { index, field } = e.currentTarget.dataset;
+    const value = e.detail.value;
+    this.setData({
+      [`batchList[${index}].${field}`]: value
+    });
+  },
+
+  addBatchSubject() {
+    const name = this.data.newBatchSubject.trim();
+    if (!name) {
+      wx.showToast({ title: '请输入科目名', icon: 'none' });
+      return;
+    }
+
+    // 从历史考试中查找该科目的满分值
+    const allExams = storage.getExamsAll().filter(ex => ex.id !== this.data.currentExam.id);
+    let fullScore = 100;
+    for (const exam of allExams) {
+      const found = (exam.subjects || []).find(s => s.name === name);
+      if (found && found.fullScore) {
+        fullScore = found.fullScore;
+        break;
+      }
+    }
+
+    const list = this.data.batchList.concat([{
+      name,
+      score: '',
+      classRank: '',
+      gradeRank: '',
+      fullScore
+    }]);
+
+    this.setData({ batchList: list, newBatchSubject: '' });
+  },
+
+  onNewBatchInput(e) {
+    this.setData({ newBatchSubject: e.detail.value });
+  },
+
+  removeBatchSubject(e) {
+    const index = e.currentTarget.dataset.index;
+    const list = this.data.batchList.slice();
+    if (list.length <= 1) {
+      wx.showToast({ title: '至少保留一个科目', icon: 'none' });
+      return;
+    }
+    list.splice(index, 1);
+    this.setData({ batchList: list });
+  },
+
+  saveBatch() {
+    const list = this.data.batchList;
+    // 过滤掉没有科目名的行
+    const validSubjects = list.filter(s => s.name.trim());
+
+    if (validSubjects.length === 0) {
+      wx.showToast({ title: '至少填写一个科目', icon: 'none' });
+      return;
+    }
+
+    // 验证：成绩必须填
+    for (const s of validSubjects) {
+      if (s.score === '' || isNaN(Number(s.score))) {
+        wx.showToast({ title: `「${s.name}」成绩无效`, icon: 'none' });
+        return;
+      }
+    }
+
+    const exam = this.data.currentExam;
+    if (!exam) return;
+
+    const allExams = storage.getExamsAll();
+    const target = allExams.find(ex => ex.id === exam.id);
+    if (!target) return;
+
+    target.subjects = validSubjects.map(s => ({
+      name: s.name.trim(),
+      score: Number(s.score),
+      fullScore: Number(s.fullScore) || 100,
+      classRank: s.classRank ? Number(s.classRank) : undefined,
+      gradeRank: s.gradeRank ? Number(s.gradeRank) : undefined
+    }));
+
+    storage.saveExamsAll(allExams);
+    this.setData({ showBatchModal: false, batchList: [], newBatchSubject: '' });
+    this._saveAndReload();
+    wx.showToast({ title: '已保存', icon: 'success' });
   },
 
   // ======================== 成绩分析 ========================

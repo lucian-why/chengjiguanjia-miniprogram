@@ -258,7 +258,10 @@
 
     <!-- 各科成绩 -->
     <view class="card">
-      <view class="card-title">各科成绩</view>
+      <view class="card-title-row">
+        <view class="card-title">各科成绩</view>
+        <view class="batch-inline-btn" catchtap="openBatchModal">📝 批量填写</view>
+      </view>
       <view class="subject-cards">
         <view class="subject-card" wx:for="{{currentExam.subjects}}" wx:key="name" data-index="{{index}}" bindtap="editSubject">
           <view class="subject-card-name">{{item.name}}<text wx:if="{{item.notes}}" class="note-icon">📝</text></view>
@@ -475,6 +478,53 @@
         <view class="radar-title">主展示：<text style="color:var(--accent-warm);font-weight:600;">{{radarMainExam ? radarMainExam.name : '未选择'}}</text></view>
         <canvas canvas-id="zoomRadarChart" id="zoomRadarChart" class="zoom-radar-canvas"></canvas>
       </block>
+    </view>
+  </view>
+</view>
+
+<!-- 批量填写弹窗 -->
+<view class="modal-mask" wx:if="{{showBatchModal}}" bindtap="closeBatchModal">
+  <view class="modal batch-modal" catchtap="noop" catchtouchmove="">
+    <view class="modal-header">
+      <view class="modal-title">📝 批量填写成绩</view>
+      <view class="modal-close" bindtap="closeBatchModal">✕</view>
+    </view>
+    <scroll-view scroll-y class="batch-body" catchtap="noop">
+      <!-- 表头 -->
+      <view class="batch-header">
+        <view class="batch-col batch-col-name">科目</view>
+        <view class="batch-col batch-col-score">成绩</view>
+        <view class="batch-col batch-col-rank">班排名</view>
+        <view class="batch-col batch-col-rank">年排名</view>
+        <view class="batch-col batch-col-del"></view>
+      </view>
+      <!-- 科目行 -->
+      <view class="batch-row" wx:for="{{batchList}}" wx:key="index">
+        <view class="batch-col batch-col-name">
+          <input class="batch-input batch-name-input" placeholder="科目名" value="{{item.name}}" bindinput="onBatchInput" data-index="{{index}}" data-field="name" />
+        </view>
+        <view class="batch-col batch-col-score">
+          <input class="batch-input" type="number" placeholder="分数" value="{{item.score}}" bindinput="onBatchInput" data-index="{{index}}" data-field="score" />
+        </view>
+        <view class="batch-col batch-col-rank">
+          <input class="batch-input" type="number" placeholder="选填" value="{{item.classRank}}" bindinput="onBatchInput" data-index="{{index}}" data-field="classRank" />
+        </view>
+        <view class="batch-col batch-col-rank">
+          <input class="batch-input" type="number" placeholder="选填" value="{{item.gradeRank}}" bindinput="onBatchInput" data-index="{{index}}" data-field="gradeRank" />
+        </view>
+        <view class="batch-col batch-col-del">
+          <view class="batch-del-btn" bindtap="removeBatchSubject" data-index="{{index}}">✕</view>
+        </view>
+      </view>
+      <!-- 新增科目 -->
+      <view class="batch-add-row">
+        <input class="batch-input batch-add-input" placeholder="输入新科目名" value="{{newBatchSubject}}" bindinput="onNewBatchInput" bindconfirm="addBatchSubject" />
+        <view class="batch-add-btn" bindtap="addBatchSubject">+ 添加</view>
+      </view>
+    </scroll-view>
+    <view class="modal-footer">
+      <view class="btn btn-secondary" bindtap="closeBatchModal">取消</view>
+      <view class="btn btn-primary" bindtap="saveBatch">全部保存</view>
     </view>
   </view>
 </view>
