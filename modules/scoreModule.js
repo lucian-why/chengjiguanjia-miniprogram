@@ -13,23 +13,32 @@ function createScoreModule(page) {
     page.setData({ 'scoreForm.fullScore': String(remembered) });
   }
 
+  function rememberModalOrigin() {
+    page._restoreDetailAfterScoreModal = !!page.data.showDetailPanel;
+  }
+
   function openScoreModal() {
     page._scoreFullAutoValue = '100';
+    rememberModalOrigin();
     page.setData({
       editSubjectIndex: null,
+      showDetailPanel: false,
       showScoreModal: true,
       scoreForm: { name: '', score: '', fullScore: '100', classRank: '', gradeRank: '', notes: '' }
     });
   }
 
   function editSubject(e) {
-    const index = e.currentTarget.dataset.index;
+    const index = Number(e.currentTarget.dataset.index);
     const exam = page.data.currentExam;
     if (!exam || !exam.subjects || !exam.subjects[index]) return;
+
     const sub = exam.subjects[index];
     page._scoreFullAutoValue = '';
+    rememberModalOrigin();
     page.setData({
       editSubjectIndex: index,
+      showDetailPanel: false,
       showScoreModal: true,
       scoreForm: {
         name: sub.name || '',
@@ -43,7 +52,12 @@ function createScoreModule(page) {
   }
 
   function closeScoreModal() {
-    page.setData({ showScoreModal: false });
+    const shouldRestoreDetail = !!page._restoreDetailAfterScoreModal;
+    page._restoreDetailAfterScoreModal = false;
+    page.setData({
+      showScoreModal: false,
+      showDetailPanel: shouldRestoreDetail
+    });
   }
 
   function onScoreFormInput(e) {
@@ -62,11 +76,11 @@ function createScoreModule(page) {
   function saveSubject() {
     const form = page.data.scoreForm;
     if (!form.name.trim()) {
-      wx.showToast({ title: '请输入科目名称', icon: 'none' });
+      wx.showToast({ title: 'Enter subject name', icon: 'none' });
       return;
     }
-    if (form.score === '' || isNaN(Number(form.score))) {
-      wx.showToast({ title: '请输入有效成绩', icon: 'none' });
+    if (form.score === '' || Number.isNaN(Number(form.score))) {
+      wx.showToast({ title: 'Enter valid score', icon: 'none' });
       return;
     }
 
@@ -76,7 +90,6 @@ function createScoreModule(page) {
     const allExams = storage.getExamsAll();
     const target = allExams.find(ex => ex.id === exam.id);
     if (!target) return;
-
     if (!target.subjects) target.subjects = [];
 
     const subjectData = {
@@ -97,9 +110,15 @@ function createScoreModule(page) {
     }
 
     storage.saveExamsAll(allExams);
-    page.setData({ showScoreModal: false });
+
+    const shouldRestoreDetail = !!page._restoreDetailAfterScoreModal;
+    page._restoreDetailAfterScoreModal = false;
+    page.setData({
+      showScoreModal: false,
+      showDetailPanel: shouldRestoreDetail
+    });
     page._saveAndReload();
-    wx.showToast({ title: '已保存', icon: 'success' });
+    wx.showToast({ title: 'Saved', icon: 'success' });
   }
 
   function confirmDeleteSubject() {
@@ -108,10 +127,10 @@ function createScoreModule(page) {
 
     page.setData({
       showConfirmModal: true,
-      confirmIcon: '🗑️',
+      confirmIcon: '!',
       confirmIconType: 'danger',
-      confirmTitle: '删除科目',
-      confirmMessage: '选择要删除的科目：\n（此操作不可撤销）',
+      confirmTitle: 'Delete Subject',
+      confirmMessage: 'Pick a subject to remove.',
       confirmOkText: '',
       confirmOkClass: 'btn-danger',
       confirmShowCancel: false,
@@ -126,15 +145,18 @@ function createScoreModule(page) {
         const subName = exam.subjects[idx].name;
         page.setData({
           showConfirmModal: true,
-          confirmIcon: '🗑️',
+          confirmIcon: '!',
           confirmIconType: 'danger',
-          confirmTitle: '删除科目',
-          confirmMessage: `确定删除“${subName}”吗？`,
-          confirmOkText: '删除',
+          confirmTitle: 'Delete Subject',
+          confirmMessage: `Delete "${subName}"?`,
+          confirmOkText: 'Delete',
           confirmOkClass: 'btn-danger',
           confirmShowCancel: true,
           _confirmCallback: () => { _doDeleteSubject(idx); }
         });
+      },
+      fail: () => {
+        page.setData({ showConfirmModal: false, _confirmCallback: null });
       }
     });
   }
@@ -150,7 +172,7 @@ function createScoreModule(page) {
     target.subjects.splice(subjectIndex, 1);
     storage.saveExamsAll(allExams);
     page._saveAndReload();
-    wx.showToast({ title: '已删除', icon: 'success' });
+    wx.showToast({ title: 'Deleted', icon: 'success' });
   }
 
   return {

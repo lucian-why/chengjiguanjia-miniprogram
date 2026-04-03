@@ -33,6 +33,95 @@ view, text, navigator, image {
   color: var(--accent-blue);
 }
 
+.profile-sheet-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.38);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.profile-sheet {
+  width: 100%;
+  background: linear-gradient(180deg, #fffdfb, #f7fafc);
+  border-radius: 32rpx;
+  padding: 28rpx;
+  box-sizing: border-box;
+  box-shadow: 0 24rpx 60rpx rgba(15, 23, 42, 0.18);
+}
+
+.profile-sheet-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.profile-sheet-subtitle {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.profile-sheet-list {
+  margin-top: 24rpx;
+}
+
+.profile-sheet-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(124, 169, 201, 0.12);
+  margin-bottom: 14rpx;
+}
+
+.profile-sheet-item.is-active {
+  background: linear-gradient(135deg, rgba(124, 169, 201, 0.18), rgba(105, 182, 166, 0.12));
+  border-color: rgba(105, 182, 166, 0.36);
+  box-shadow: 0 12rpx 24rpx rgba(95, 158, 199, 0.12);
+}
+
+.profile-sheet-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.profile-sheet-item-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-sheet-item-meta {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+}
+
+.profile-sheet-item-mark {
+  font-size: 22rpx;
+  color: #2f7f78;
+  background: rgba(105, 182, 166, 0.14);
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+.profile-sheet-cancel {
+  margin-top: 8rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: var(--text-secondary);
+  padding: 20rpx 0 6rpx;
+}
+
 /* ===== 主内容区域（支持滑动切换）===== */
 .main-content {
   position: relative;

@@ -95,6 +95,7 @@ module.exports.chart = {
 
 // 档案管理模块 data
 module.exports.profile = {
+  showProfilePicker: false,
   showAddProfile: false,
   showRenameModal: false,
   newProfileName: '',
