@@ -113,20 +113,6 @@
   <view class="card chart-card" wx:if="{{analysisMode === 'radar'}}">
     <!-- 放大按钮 -->
     <view class="chart-zoom-btn" bindtap="openChartZoom" data-type="radar">⛶</view>
-<<<<<<< Updated upstream
-    <!-- 主展示考试名称 -->
-    <view class="radar-title">主展示：<text style="color:var(--accent-warm);font-weight:600;">{{radarMainExam ? radarMainExam.name : '未选择'}}</text></view>
-
-    <!-- 对比考试选择（全部考试均可点选，首个选中的为主展示） -->
-    <view class="radar-compare" wx:if="{{compareExams.length > 0}}">
-      <view class="radar-compare-chips">
-        <view class="compare-chip {{item.isMain ? 'current' : ''}} {{item.selected && !item.isMain ? 'selected' : ''}} {{selectedRadarIds.length >= 3 && !item.selected ? 'disabled' : ''}}"
-          wx:for="{{compareExams}}" wx:key="id" bindtap="toggleCompare" data-id="{{item.id}}">
-          {{item.name}}
-        </view>
-      </view>
-      <view class="radar-hint">{{selectedRadarIds.length > 0 ? '已选 ' + selectedRadarIds.length + '/3 场（首个为主展示）' : '点击选择考试（首个为主展示，最多3场）'}}</view>
-=======
     <!-- 当前考试名称 -->
     <view class="radar-title">当前：<text class="radar-current-name">{{currentExam ? currentExam.name : '未选择'}}</text></view>
 
@@ -139,7 +125,7 @@
         </view>
       </view>
       <view class="radar-hint">点击橙色标签切换当前考试，其余为对比（最多2场）</view>
->>>>>>> Stashed changes
+    </view>
     </view>
 
     <canvas canvas-id="radarChart" id="radarChart" class="radar-canvas"></canvas>
