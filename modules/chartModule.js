@@ -167,14 +167,27 @@ function createChartModule(page) {
         setTimeout(function() { _drawChart(); }, 100);
       }
     } else {
-      // 点击非当前考试 -> 切换选中状态
-      var selectedCount = 0;
-      for (var j = 0; j < radarExams.length; j++) {
-        if (radarExams[j].selected) selectedCount++;
+      // 点击非当前考试
+      var hasAnyCurrent = false;
+      for (var k = 0; k < radarExams.length; k++) {
+        if (radarExams[k].isCurrent) { hasAnyCurrent = true; break; }
       }
-      if (!target.selected && selectedCount >= 2) return; // 最多2场对比
 
-      var updated = radarExams.map(function(ex) {
+      if (!hasAnyCurrent) {
+        // 当前无展示考试 -> 直接设为展示考试
+        page.setData({ currentExamId: target.id });
+        page._refreshCurrentExam();
+        page._refreshAnalysis();
+        setTimeout(function() { _drawChart(); }, 100);
+      } else {
+        // 有展示考试 -> 切换对比选中状态
+        var selectedCount = 0;
+        for (var j = 0; j < radarExams.length; j++) {
+          if (radarExams[j].selected) selectedCount++;
+        }
+        if (!target.selected && selectedCount >= 2) return;
+
+        var updated = radarExams.map(function(ex) {
         if (ex.id === id) return Object.assign({}, ex, { selected: !ex.selected });
         return ex;
       });
