@@ -76,11 +76,11 @@ function createScoreModule(page) {
   function saveSubject() {
     const form = page.data.scoreForm;
     if (!form.name.trim()) {
-      wx.showToast({ title: 'Enter subject name', icon: 'none' });
+      wx.showToast({ title: '请输入科目名称', icon: 'none' });
       return;
     }
     if (form.score === '' || Number.isNaN(Number(form.score))) {
-      wx.showToast({ title: 'Enter valid score', icon: 'none' });
+      wx.showToast({ title: '请输入有效成绩', icon: 'none' });
       return;
     }
 
@@ -118,7 +118,7 @@ function createScoreModule(page) {
       showDetailPanel: shouldRestoreDetail
     });
     page._saveAndReload();
-    wx.showToast({ title: 'Saved', icon: 'success' });
+    wx.showToast({ title: '已保存', icon: 'success' });
   }
 
   function confirmDeleteSubject() {
@@ -129,8 +129,8 @@ function createScoreModule(page) {
       showConfirmModal: true,
       confirmIcon: '!',
       confirmIconType: 'danger',
-      confirmTitle: 'Delete Subject',
-      confirmMessage: 'Pick a subject to remove.',
+      confirmTitle: '删除科目',
+      confirmMessage: '请选择要删除的科目。',
       confirmOkText: '',
       confirmOkClass: 'btn-danger',
       confirmShowCancel: false,
@@ -147,9 +147,9 @@ function createScoreModule(page) {
           showConfirmModal: true,
           confirmIcon: '!',
           confirmIconType: 'danger',
-          confirmTitle: 'Delete Subject',
-          confirmMessage: `Delete "${subName}"?`,
-          confirmOkText: 'Delete',
+          confirmTitle: '删除科目',
+          confirmMessage: `确定删除“${subName}”吗？`,
+          confirmOkText: '删除',
           confirmOkClass: 'btn-danger',
           confirmShowCancel: true,
           _confirmCallback: () => { _doDeleteSubject(idx); }
@@ -172,7 +172,7 @@ function createScoreModule(page) {
     target.subjects.splice(subjectIndex, 1);
     storage.saveExamsAll(allExams);
     page._saveAndReload();
-    wx.showToast({ title: 'Deleted', icon: 'success' });
+    wx.showToast({ title: '已删除', icon: 'success' });
   }
 
   return {
