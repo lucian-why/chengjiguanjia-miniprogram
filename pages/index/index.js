@@ -1,11 +1,27 @@
+/**
+ * 成绩管家 - Main page (refactored: thin glue layer)
+ * Architecture: module factory + Object.assign mixin in onLoad
+ */
+
 const storage = require('../../utils/storage');
 const fmt = require('../../utils/format');
-const chart = require('../../utils/chart');
-const report = require('../../utils/report');
-const XLSX = require('../../utils/xlsx');
+
+const defs = require('../../modules/defs');
+
+const createExamModule = require('../../modules/examModule');
+const createScoreModule = require('../../modules/scoreModule');
+const createBatchModule = require('../../modules/batchModule');
+const createChartModule = require('../../modules/chartModule');
+const createProfileModule = require('../../modules/profileModule');
+const createModalModule = require('../../modules/modalModule');
+const createReportModule = require('../../modules/reportModule');
+const createDataManager = require('../../modules/dataManager');
+
+let _modulesRegistered = false;
 
 Page({
   data: {
+<<<<<<< Updated upstream
     // 档案
     profiles: [],
     activeProfileIndex: 0,
@@ -101,27 +117,46 @@ Page({
     showBatchModal: false,
     batchList: [],          // [{name, score, classRank, gradeRank, fullScore}]
     newBatchSubject: ''     // 新增科目名输入
+=======
+    ...defs._global,
+    ...defs.exam,
+    ...defs.score,
+    ...defs.batch,
+    ...defs.chart,
+    ...defs.profile,
+    ...defs.modal,
+    ...defs.report
+>>>>>>> Stashed changes
   },
 
   onLoad() {
+    if (!_modulesRegistered) {
+      _modulesRegistered = true;
+      Object.assign(this, createExamModule(this));
+      Object.assign(this, createScoreModule(this));
+      Object.assign(this, createBatchModule(this));
+      Object.assign(this, createChartModule(this));
+      Object.assign(this, createProfileModule(this));
+      Object.assign(this, createModalModule(this));
+      Object.assign(this, createReportModule(this));
+      Object.assign(this, createDataManager(this));
+    }
+
     this._loadData();
     this._checkFirstLaunch();
   },
 
   onShow() {
-    // 每次显示时刷新数据
     this._loadData();
   },
 
   onShareAppMessage() {
     const profile = this.data.profiles[this.data.activeProfileIndex];
     return {
-      title: `成绩管家 - ${profile ? profile.name : '我的成绩'}`,
+      title: '成绩管家 - ' + (profile ? profile.name : '我的成绩'),
       path: '/pages/index/index'
     };
   },
-
-  // ======================== 数据加载 ========================
 
   _loadData() {
     const profiles = storage.getProfiles();
@@ -129,7 +164,6 @@ Page({
     let activeIndex = profiles.findIndex(p => p.id === activeId);
     if (activeIndex === -1) activeIndex = 0;
 
-    // 计算每个档案的考试数
     const profilesWithCount = profiles.map(p => {
       const exams = storage.getExams(p.id);
       return { ...p, examCount: exams.length };
@@ -139,15 +173,11 @@ Page({
     const currentProfileId = profilesWithCount[activeIndex] ? profilesWithCount[activeIndex].id : '';
     const exams = storage.getExams(currentProfileId).sort(fmt.compareExamDateDesc);
 
-    // 补充 totalScore
     exams.forEach(e => {
       e.totalScore = fmt.getTotalScore(e.subjects);
     });
 
-    // 科目名列表
     const subjectNames = fmt.uniqueSubjectNames(exams);
-
-    // 是否有示例数据（仅当存在真实数据时才允许清除）
     const hasDemoData = exams.some(e => e.id.startsWith('demo_')) && exams.some(e => !e.id.startsWith('demo_'));
 
     this.setData({
@@ -159,7 +189,6 @@ Page({
       hasDemoData
     });
 
-    // 默认选中最新考试（仅首次或 currentExamId 失效时）
     if (!this.data.currentExamId && exams.length > 0) {
       this.setData({ currentExamId: exams[0].id });
     }
@@ -178,6 +207,7 @@ Page({
       : '';
   },
 
+<<<<<<< Updated upstream
   // ======================== 考试详情 ========================
 
   selectExam(e) {
@@ -252,6 +282,17 @@ Page({
     // 根据新旧 tab 位置决定滑入方向
     const dir = newIdx > oldIdx ? 'slide-in-right' : 'slide-in-left';
     this.setData({ currentTab: tab, showDetailPanel: false, tabSlideIn: true, pageSwipeDirection: dir });
+=======
+  switchTab(e) {
+    var tab;
+    if (e && e.currentTarget && e.currentTarget.dataset) {
+      tab = e.currentTarget.dataset.tab;
+    } else {
+      tab = e;
+    }
+    if (!tab) return;
+    this.setData({ currentTab: tab, showDetailPanel: false });
+>>>>>>> Stashed changes
     if (tab === 'trend') {
       this.$nextTick && this.$nextTick(() => this._drawChart());
       setTimeout(() => this._drawChart(), 300);
@@ -306,8 +347,14 @@ Page({
     }
   },
 
-  // ======================== 考试 CRUD ========================
+  // ======================== 滑动切换标签页 ========================
+  _touchStartX: 0,
+  _touchStartY: 0,
+  _touchMoving: false,
+  _tabIndex: { exam: 0, trend: 1, settings: 2 },
+  _tabKeys: ['exam', 'trend', 'settings'],
 
+<<<<<<< Updated upstream
   openExamModal(e) {
     const id = e.currentTarget ? e.currentTarget.dataset.id : '';
     if (id) {
@@ -354,13 +401,25 @@ Page({
 
   closeExamModal() {
     this.setData({ showExamModal: false, continuousCreate: false, continuousCreateCount: 0 });
+=======
+  onTouchStart(e) {
+    this._touchStartX = e.touches[0].clientX;
+    this._touchStartY = e.touches[0].clientY;
+    this._touchMoving = false;
   },
 
-  onExamFormInput(e) {
-    const field = e.currentTarget.dataset.field;
-    this.setData({ [`examForm.${field}`]: e.detail.value });
+  onTouchMove(e) {
+    this._touchMoving = true;
+>>>>>>> Stashed changes
   },
 
+  onTouchEnd(e) {
+    if (!this._touchMoving) return;
+    var endX = e.changedTouches[0].clientX;
+    var endY = e.changedTouches[0].clientY;
+    var deltaY = Math.abs(endY - this._touchStartY);
+
+<<<<<<< Updated upstream
   onExamDatePick(e) {
     const field = e.currentTarget.dataset.field;
     const val = e.detail.value;
@@ -373,14 +432,14 @@ Page({
       this.setData({ 'examForm.endDate': nextDay });
     }
   },
+=======
+    if (deltaY > 50) return;
+>>>>>>> Stashed changes
 
-  saveExam() {
-    const form = this.data.examForm;
-    if (!form.name.trim()) {
-      wx.showToast({ title: '请输入考试名称', icon: 'none' });
-      return;
-    }
+    var deltaX = endX - this._touchStartX;
+    var THRESHOLD = 80;
 
+<<<<<<< Updated upstream
     const profileId = this._getActiveProfileId();
     if (this.data.editExamId) {
       // 编辑模式：保存后直接关闭
@@ -1290,572 +1349,38 @@ Page({
           activeProfileIndex: 0,
           currentExamId: '',
           currentExam: null,
+=======
+    if (deltaX < -THRESHOLD) {
+      // 向左滑 -> 下一个标签
+      var cur = this._tabIndex[this.data.currentTab];
+      if (cur < 2) {
+        this.setData({
+          _slideDirection: 'left',
+          currentTab: this._tabKeys[cur + 1],
+>>>>>>> Stashed changes
           showDetailPanel: false
         });
-        this._saveAndReload();
-        wx.showToast({ title: '已删除', icon: 'success' });
-      }
-    });
-  },
-
-  // ======================== 确认弹窗 ========================
-
-  closeConfirmModal() {
-    this.setData({ showConfirmModal: false, _confirmCallback: null });
-  },
-
-  onConfirmOk() {
-    const cb = this.data._confirmCallback;
-    this.setData({ showConfirmModal: false, _confirmCallback: null });
-    if (cb && typeof cb === 'function') {
-      cb();
-    }
-  },
-
-  // ======================== 分享报告 ========================
-
-  openShareExamReport() {
-    const exam = this.data.currentExam;
-    if (!exam) return;
-    const profile = this.data.profiles[this.data.activeProfileIndex];
-    this.setData({
-      reportType: 'exam',
-      showReportModal: true,
-      reportLoading: true,
-      reportImage: '',
-      _reportPayload: {
-        exam,
-        profileName: profile ? profile.name : ''
-      }
-    });
-    setTimeout(() => this._generateReport(), 300);
-  },
-
-  openShareProfileReport(e) {
-    const index = e.currentTarget.dataset.index;
-    const profile = this.data.profiles[index];
-    if (!profile) return;
-    const exams = storage.getExams(profile.id, true);
-    this.setData({
-      reportType: 'profile',
-      showReportModal: true,
-      reportLoading: true,
-      reportImage: '',
-      _reportPayload: { profile, exams }
-    });
-    setTimeout(() => this._generateReport(), 300);
-  },
-
-  _generateReport() {
-    const payload = this.data._reportPayload;
-    const width = 375;
-
-    // 先计算报告高度
-    let drawHeight;
-    if (this.data.reportType === 'exam') {
-      drawHeight = report.drawExamReport(null, { ...payload, width });
-    } else {
-      drawHeight = report.drawProfileReport(null, { ...payload, width });
-    }
-
-    // 设置 canvas 高度并等待渲染
-    this.setData({ reportCanvasHeight: drawHeight }, () => {
-      setTimeout(() => {
-        const ctx = wx.createCanvasContext('reportCanvas', this);
-
-        if (this.data.reportType === 'exam') {
-          report.drawExamReport(ctx, { ...payload, width });
-        } else {
-          report.drawProfileReport(ctx, { ...payload, width });
+        if (this._tabKeys[cur + 1] === 'trend') {
+          this.$nextTick && this.$nextTick(() => this._drawChart());
+          setTimeout(() => this._drawChart(), 300);
         }
-
-        // 旧版 API 需要用 ctx.draw() 回调确保绘制完成
-        ctx.draw(false, () => {
-          setTimeout(() => {
-            wx.canvasToTempFilePath({
-              canvasId: 'reportCanvas',
-              x: 0,
-              y: 0,
-              width,
-              height: drawHeight,
-              destWidth: width * 2,
-              destHeight: drawHeight * 2,
-              fileType: 'png',
-              success: (res) => {
-                this.setData({
-                  reportLoading: false,
-                  reportImage: res.tempFilePath
-                });
-              },
-              fail: (err) => {
-                console.error('报告生成失败', err);
-                this.setData({ reportLoading: false });
-                wx.showToast({ title: '报告生成失败', icon: 'none' });
-              }
-            }, this);
-          }, 500);
+        setTimeout(() => { this.setData({ _slideDirection: '' }); }, 300);
+      }
+    } else if (deltaX > THRESHOLD) {
+      // 向右滑 -> 上一个标签
+      var cur2 = this._tabIndex[this.data.currentTab];
+      if (cur2 > 0) {
+        this.setData({
+          _slideDirection: 'right',
+          currentTab: this._tabKeys[cur2 - 1],
+          showDetailPanel: false
         });
-      }, 300);
-    });
-  },
-
-  closeReportModal() {
-    this.setData({ showReportModal: false, reportImage: '' });
-  },
-
-  saveReport() {
-    if (!this.data.reportImage) return;
-    wx.saveImageToPhotosAlbum({
-      filePath: this.data.reportImage,
-      success: () => {
-        wx.showToast({ title: '已保存到相册', icon: 'success' });
-      },
-      fail: (err) => {
-        if (err.errMsg.includes('auth deny') || err.errMsg.includes('authorize')) {
-          wx.showModal({
-            title: '需要相册权限',
-            content: '请前往设置页开启「保存到相册」权限',
-            confirmText: '去设置',
-            success: (res) => {
-              if (res.confirm) {
-                wx.openSetting();
-              }
-            }
-          });
-        } else {
-          wx.showToast({ title: '保存失败', icon: 'none' });
+        if (this._tabKeys[cur2 - 1] === 'trend') {
+          this.$nextTick && this.$nextTick(() => this._drawChart());
+          setTimeout(() => this._drawChart(), 300);
         }
+        setTimeout(() => { this.setData({ _slideDirection: '' }); }, 300);
       }
-    });
-  },
-
-  shareReport() {
-    if (!this.data.reportImage) return;
-    wx.previewImage({
-      current: this.data.reportImage,
-      urls: [this.data.reportImage]
-    });
-  },
-
-  // ======================== 数据管理 ========================
-
-  _checkFirstLaunch() {
-    if (wx.getStorageSync('hasLaunched')) return;
-    const profileId = this._getActiveProfileId();
-    if (!profileId) return;
-    this._injectDemoData(profileId);
-    wx.setStorageSync('hasLaunched', true);
-  },
-
-  _injectDemoData(profileId) {
-    const allExams = storage.getExamsAll();
-    const demoSubjects = [
-      { name: '语文', score: 88, fullScore: 100, classRank: 12, gradeRank: 86 },
-      { name: '数学', score: 95, fullScore: 100, classRank: 3, gradeRank: 15 },
-      { name: '英语', score: 82, fullScore: 100, classRank: 18, gradeRank: 120 },
-      { name: '物理', score: 78, fullScore: 100, classRank: 20, gradeRank: 95 },
-      { name: '化学', score: 90, fullScore: 100, classRank: 8, gradeRank: 45 },
-      { name: '生物', score: 85, fullScore: 100, classRank: 10, gradeRank: 62 }
-    ];
-
-    const demoExams = [
-      {
-        id: 'demo_20250315',
-        profileId,
-        name: '2025年3月月考',
-        startDate: '2025-03-15',
-        endDate: '2025-03-16',
-        subjects: [
-          { name: '语文', score: 45, fullScore: 100, classRank: 34, gradeRank: 260 },
-          { name: '数学', score: 50, fullScore: 100, classRank: 28, gradeRank: 200 },
-          { name: '英语', score: 40, fullScore: 100, classRank: 36, gradeRank: 270 },
-          { name: '物理', score: 42, fullScore: 100, classRank: 35, gradeRank: 255 },
-          { name: '化学', score: 48, fullScore: 100, classRank: 30, gradeRank: 225 },
-          { name: '生物', score: 44, fullScore: 100, classRank: 32, gradeRank: 245 }
-        ],
-        totalClassRank: 28,
-        totalGradeRank: 168,
-        classTotal: 45,
-        gradeTotal: 500,
-        createdAt: new Date('2025-03-16').toISOString()
-      },
-      {
-        id: 'demo_20250510',
-        profileId,
-        name: '2025年5月月考',
-        startDate: '2025-05-10',
-        endDate: '2025-05-11',
-        subjects: [
-          { name: '语文', score: 52, fullScore: 100, classRank: 26, gradeRank: 210 },
-          { name: '数学', score: 58, fullScore: 100, classRank: 22, gradeRank: 178 },
-          { name: '英语', score: 48, fullScore: 100, classRank: 30, gradeRank: 240 },
-          { name: '物理', score: 45, fullScore: 100, classRank: 34, gradeRank: 260 },
-          { name: '化学', score: 55, fullScore: 100, classRank: 24, gradeRank: 185 },
-          { name: '生物', score: 50, fullScore: 100, classRank: 28, gradeRank: 205 }
-        ],
-        totalClassRank: 24,
-        totalGradeRank: 148,
-        classTotal: 45,
-        gradeTotal: 500,
-        createdAt: new Date('2025-05-11').toISOString()
-      },
-      {
-        id: 'demo_20250620',
-        profileId,
-        name: '2025年6月期末考',
-        startDate: '2025-06-20',
-        endDate: '2025-06-22',
-        subjects: [
-          { name: '语文', score: 60, fullScore: 100, classRank: 20, gradeRank: 165 },
-          { name: '数学', score: 65, fullScore: 100, classRank: 16, gradeRank: 140 },
-          { name: '英语', score: 52, fullScore: 100, classRank: 27, gradeRank: 230 },
-          { name: '物理', score: 50, fullScore: 100, classRank: 28, gradeRank: 210 },
-          { name: '化学', score: 62, fullScore: 100, classRank: 18, gradeRank: 145 },
-          { name: '生物', score: 55, fullScore: 100, classRank: 24, gradeRank: 178 }
-        ],
-        totalClassRank: 18,
-        totalGradeRank: 125,
-        classTotal: 45,
-        gradeTotal: 500,
-        createdAt: new Date('2025-06-22').toISOString()
-      },
-      {
-        id: 'demo_20250715',
-        profileId,
-        name: '2025年7月月考',
-        startDate: '2025-07-15',
-        endDate: '2025-07-16',
-        subjects: [
-          { name: '语文', score: 55, fullScore: 100, classRank: 24, gradeRank: 195 },
-          { name: '数学', score: 60, fullScore: 100, classRank: 20, gradeRank: 168 },
-          { name: '英语', score: 45, fullScore: 100, classRank: 33, gradeRank: 255 },
-          { name: '物理', score: 48, fullScore: 100, classRank: 30, gradeRank: 230 },
-          { name: '化学', score: 58, fullScore: 100, classRank: 22, gradeRank: 190 },
-          { name: '生物', score: 50, fullScore: 100, classRank: 28, gradeRank: 205 }
-        ],
-        totalClassRank: 22,
-        totalGradeRank: 142,
-        classTotal: 45,
-        gradeTotal: 500,
-        createdAt: new Date('2025-07-16').toISOString()
-      },
-      {
-        id: 'demo_20250915',
-        profileId,
-        name: '2025年9月月考',
-        startDate: '2025-09-15',
-        endDate: '2025-09-16',
-        excluded: true,
-        subjects: [
-          { name: '语文', score: 42, fullScore: 100, classRank: 35, gradeRank: 255 },
-          { name: '数学', score: 45, fullScore: 100, classRank: 32, gradeRank: 235 },
-          { name: '英语', score: 38, fullScore: 100, classRank: 38, gradeRank: 265 },
-          { name: '物理', score: 35, fullScore: 100, classRank: 40, gradeRank: 280 },
-          { name: '化学', score: 44, fullScore: 100, classRank: 33, gradeRank: 240 },
-          { name: '生物', score: 40, fullScore: 100, classRank: 36, gradeRank: 258 }
-        ],
-        totalClassRank: 30,
-        totalGradeRank: 180,
-        classTotal: 45,
-        gradeTotal: 500,
-        createdAt: new Date('2025-09-16').toISOString()
-      },
-      {
-        id: 'demo_20251110',
-        profileId,
-        name: '2025年11月期中考',
-        startDate: '2025-11-10',
-        endDate: '2025-11-11',
-        subjects: [
-          { name: '语文', score: 95, fullScore: 100, classRank: 2, gradeRank: 15 },
-          { name: '数学', score: 50, fullScore: 100, classRank: 25, gradeRank: 145 },
-          { name: '英语', score: 55, fullScore: 100, classRank: 28, gradeRank: 175 },
-          { name: '物理', score: 48, fullScore: 100, classRank: 32, gradeRank: 200 },
-          { name: '化学', score: 50, fullScore: 100, classRank: 28, gradeRank: 170 },
-          { name: '生物', score: 60, fullScore: 100, classRank: 20, gradeRank: 130 }
-        ],
-        totalClassRank: 14,
-        totalGradeRank: 85,
-        classTotal: 45,
-        gradeTotal: 500,
-        createdAt: new Date('2025-11-11').toISOString()
-      },
-      {
-        id: 'demo_20260320',
-        profileId,
-        name: '2026年3月模拟考',
-        startDate: '2026-03-20',
-        endDate: '2026-03-21',
-        subjects: [
-          { name: '语文', score: 70, fullScore: 100, classRank: 15, gradeRank: 105 },
-          { name: '数学', score: 95, fullScore: 100, classRank: 1, gradeRank: 8 },
-          { name: '英语', score: 80, fullScore: 100, classRank: 8, gradeRank: 68 },
-          { name: '物理', score: 95, fullScore: 100, classRank: 2, gradeRank: 10 },
-          { name: '化学', score: 78, fullScore: 100, classRank: 10, gradeRank: 75 },
-          { name: '生物', score: 88, fullScore: 100, classRank: 4, gradeRank: 30 }
-        ],
-        totalClassRank: 5,
-        totalGradeRank: 42,
-        classTotal: 45,
-        gradeTotal: 500,
-        createdAt: new Date('2026-03-21').toISOString()
-      }
-    ];
-
-    // 去重：移除已存在的同ID示例数据，避免重复
-    const demoIds = new Set(demoExams.map(e => e.id));
-    const filtered = allExams.filter(e => !demoIds.has(e.id));
-    storage.saveExamsAll(filtered.concat(demoExams));
-    this._saveAndReload();
-  },
-
-  addDemoData() {
-    const profileId = this._getActiveProfileId();
-    if (!profileId) return;
-
-    if (this.data.exams.length > 0) {
-      this.setData({
-        showConfirmModal: true,
-        confirmIcon: '📋',
-        confirmIconType: 'info',
-        confirmTitle: '添加示例数据？',
-        confirmMessage: '已有数据，添加示例将追加到现有记录中。',
-        confirmOkText: '添加',
-        confirmOkClass: 'btn-primary',
-        confirmShowCancel: true,
-        _confirmCallback: () => {
-          this._injectDemoData(profileId);
-          wx.showToast({ title: '示例数据已添加', icon: 'success' });
-        }
-      });
-    } else {
-      this._injectDemoData(profileId);
-      wx.showToast({ title: '示例数据已添加', icon: 'success' });
-    }
-  },
-
-  clearDemoData() {
-    const profileId = this._getActiveProfileId();
-    if (!profileId) return;
-    const allExams = storage.getExamsAll();
-    const filtered = allExams.filter(e => !e.id.startsWith('demo_'));
-    if (filtered.length === allExams.length) {
-      wx.showToast({ title: '没有示例数据可清除', icon: 'none' });
-      return;
-    }
-    this.setData({
-      showConfirmModal: true,
-      confirmIcon: '🗑️',
-      confirmIconType: 'warn',
-      confirmTitle: '清除示例数据',
-      confirmMessage: '将删除所有以"2025年"/"2026年"开头的示例考试。\n您的真实数据不受影响。',
-      confirmOkText: '清除',
-      confirmOkClass: 'btn-danger',
-      confirmShowCancel: true,
-      _confirmCallback: () => {
-        storage.saveExamsAll(filtered);
-        this._saveAndReload();
-        wx.showToast({ title: '示例数据已清除', icon: 'success' });
-      }
-    });
-  },
-
-  exportData() {
-    const profileId = this._getActiveProfileId();
-    const profile = this.data.profiles[this.data.activeProfileIndex];
-    const exams = storage.getExams(profileId);
-
-    if (exams.length === 0) {
-      wx.showToast({ title: '暂无数据可导出', icon: 'none' });
-      return;
-    }
-
-    // 构建 Excel 数据（单 sheet 平铺格式，与 web 版一致）
-    const rows = [];
-    // 表头
-    rows.push(['考试名称', '开始日期', '结束日期', '备注', '班级排名', '年级排名', '班级人数', '年级人数', '科目', '成绩', '满分', '班级排名', '年级排名', '排除']);
-
-    exams.forEach(exam => {
-      const subjects = exam.subjects || [];
-      if (subjects.length === 0) {
-        rows.push([
-          exam.name, exam.startDate || '', exam.endDate || '', exam.notes || '',
-          exam.totalClassRank || '', exam.totalGradeRank || '',
-          exam.classTotal || '', exam.gradeTotal || '',
-          '', '', '', '', '', exam.excluded ? '是' : '否'
-        ]);
-      } else {
-        subjects.forEach((sub, i) => {
-          rows.push([
-            i === 0 ? exam.name : '',
-            i === 0 ? (exam.startDate || '') : '',
-            i === 0 ? (exam.endDate || '') : '',
-            i === 0 ? (exam.notes || '') : '',
-            i === 0 ? (exam.totalClassRank || '') : '',
-            i === 0 ? (exam.totalGradeRank || '') : '',
-            i === 0 ? (exam.classTotal || '') : '',
-            i === 0 ? (exam.gradeTotal || '') : '',
-            sub.name || '', sub.score, sub.fullScore || 100,
-            sub.classRank || '', sub.gradeRank || '',
-            i === 0 ? (exam.excluded ? '是' : '否') : ''
-          ]);
-        });
-      }
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    // 设置列宽
-    ws['!cols'] = [
-      { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 15 },
-      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
-      { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 6 }
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '成绩数据');
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-
-    const fileName = `${profile ? profile.name : '成绩'}_成绩数据.xlsx`;
-    const filePath = `${wx.env.USER_DATA_PATH}/${fileName}`;
-
-    wx.getFileSystemManager().writeFile({
-      filePath,
-      data: wbout,
-      encoding: 'binary',
-      success: () => {
-        wx.shareFileMessage({
-          filePath,
-          fileName,
-          success: () => {
-            wx.showToast({ title: '导出成功', icon: 'success' });
-          },
-          fail: () => {
-            // 降级：保存到本地，提示用户
-            wx.showModal({
-              title: '导出成功',
-              content: '文件已保存，是否打开文件管理器查看？',
-              confirmText: '打开',
-              success: (res) => {
-                if (res.confirm) {
-                  wx.openDocument({
-                    filePath,
-                    showMenu: true,
-                    success: () => {},
-                    fail: () => {
-                      wx.showToast({ title: '无法打开文件', icon: 'none' });
-                    }
-                  });
-                }
-              }
-            });
-          }
-        });
-      },
-      fail: () => {
-        wx.showToast({ title: '导出失败', icon: 'none' });
-      }
-    });
-  },
-
-  importData() {
-    wx.chooseMessageFile({
-      count: 1,
-      type: 'file',
-      extension: ['xlsx', 'xls'],
-      success: (res) => {
-        const file = res.tempFiles[0];
-        this._parseExcel(file.path);
-      },
-      fail: () => {
-        // 用户取消
-      }
-    });
-  },
-
-  _parseExcel(filePath) {
-    try {
-      const fileData = wx.getFileSystemManager().readFileSync(filePath, 'binary');
-      const workbook = XLSX.read(fileData, { type: 'binary' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-      if (rows.length < 2) {
-        wx.showToast({ title: '文件中没有数据', icon: 'none' });
-        return;
-      }
-
-      const profileId = this._getActiveProfileId();
-      const allExams = storage.getExamsAll();
-      const existingIds = new Set(allExams.map(e => e.id));
-      const existingNames = new Set(allExams.map(e => e.name));
-      let importCount = 0;
-      let lastExam = null;
-
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || !row[0]) continue;
-
-        const examName = String(row[0]).trim();
-        const startDate = row[1] ? String(row[1]).trim() : '';
-        const endDate = row[2] ? String(row[2]).trim() : '';
-        const notes = row[3] ? String(row[3]).trim() : '';
-        const totalClassRank = row[4] ? Number(row[4]) : undefined;
-        const totalGradeRank = row[5] ? Number(row[5]) : undefined;
-        const classTotal = row[6] ? Number(row[6]) : undefined;
-        const gradeTotal = row[7] ? Number(row[7]) : undefined;
-        const excluded = row[13] === '是';
-        const subjectName = row[8] ? String(row[8]).trim() : '';
-        const score = row[9] !== undefined ? Number(row[9]) : undefined;
-        const fullScore = row[10] ? Number(row[10]) : 100;
-        const subClassRank = row[11] ? Number(row[11]) : undefined;
-        const subGradeRank = row[12] ? Number(row[12]) : undefined;
-
-        // 新考试行（有考试名称且还没创建过）
-        if (examName && (!lastExam || lastExam.name !== examName)) {
-          const examId = 'exam_' + Date.now() + '_' + importCount;
-          const newExam = {
-            id: examId,
-            profileId,
-            name: examName,
-            startDate: startDate || undefined,
-            endDate: endDate || undefined,
-            notes: notes || undefined,
-            totalClassRank: totalClassRank || undefined,
-            totalGradeRank: totalGradeRank || undefined,
-            classTotal: classTotal || undefined,
-            gradeTotal: gradeTotal || undefined,
-            subjects: [],
-            excluded,
-            createdAt: new Date().toISOString()
-          };
-          allExams.push(newExam);
-          lastExam = newExam;
-          importCount++;
-        }
-
-        // 如果有科目数据，添加到上一个考试
-        if (subjectName && score !== undefined && lastExam) {
-          lastExam.subjects.push({
-            name: subjectName,
-            score,
-            fullScore,
-            classRank: subClassRank || undefined,
-            gradeRank: subGradeRank || undefined
-          });
-        }
-      }
-
-      if (importCount > 0) {
-        storage.saveExamsAll(allExams);
-        this._saveAndReload();
-        wx.showToast({ title: `成功导入 ${importCount} 场考试`, icon: 'success' });
-      } else {
-        wx.showToast({ title: '未识别到有效数据', icon: 'none' });
-      }
-    } catch (err) {
-      console.error('导入失败', err);
-      wx.showToast({ title: '导入失败，请检查文件格式', icon: 'none' });
     }
   }
 });

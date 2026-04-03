@@ -15,6 +15,12 @@
   <view class="tab {{currentTab === 'settings' ? 'active' : ''}}" bindtap="switchTab" data-tab="settings">设置</view>
 </view>
 
+<!-- 主内容区（支持左右滑动切换） -->
+<view class="main-content {{_slideDirection === 'left' ? 'slide-out-left' : ''}} {{_slideDirection === 'right' ? 'slide-out-right' : ''}}"
+  bindtouchstart="onTouchStart"
+  bindtouchmove="onTouchMove"
+  bindtouchend="onTouchEnd">
+
 <!-- ===== 考试详情页 ===== -->
 <view class="tab-content {{pageSwipeDirection === 'slide-in-right' ? 'slide-in-right' : (pageSwipeDirection === 'slide-in-left' ? 'slide-in-left' : '')}}"
   wx:if="{{currentTab === 'exam'}}"
@@ -107,6 +113,7 @@
   <view class="card chart-card" wx:if="{{analysisMode === 'radar'}}">
     <!-- 放大按钮 -->
     <view class="chart-zoom-btn" bindtap="openChartZoom" data-type="radar">⛶</view>
+<<<<<<< Updated upstream
     <!-- 主展示考试名称 -->
     <view class="radar-title">主展示：<text style="color:var(--accent-warm);font-weight:600;">{{radarMainExam ? radarMainExam.name : '未选择'}}</text></view>
 
@@ -119,6 +126,20 @@
         </view>
       </view>
       <view class="radar-hint">{{selectedRadarIds.length > 0 ? '已选 ' + selectedRadarIds.length + '/3 场（首个为主展示）' : '点击选择考试（首个为主展示，最多3场）'}}</view>
+=======
+    <!-- 当前考试名称 -->
+    <view class="radar-title">当前：<text class="radar-current-name">{{currentExam ? currentExam.name : '未选择'}}</text></view>
+
+    <!-- 考试选择（按时间排序，当前考试用背景色区分） -->
+    <view class="radar-compare" wx:if="{{radarExams.length > 0}}">
+      <view class="radar-compare-chips">
+        <view class="compare-chip {{item.isCurrent ? 'current' : ''}} {{item.selected ? 'selected' : ''}} {{item.isCurrent ? '' : (selectedCompareCount >= 2 && !item.selected ? 'disabled' : '')}}"
+          wx:for="{{radarExams}}" wx:key="id" bindtap="onRadarExamTap" data-id="{{item.id}}">
+          {{item.name}}
+        </view>
+      </view>
+      <view class="radar-hint">点击橙色标签切换当前考试，其余为对比（最多2场）</view>
+>>>>>>> Stashed changes
     </view>
 
     <canvas canvas-id="radarChart" id="radarChart" class="radar-canvas"></canvas>
@@ -192,14 +213,6 @@
   <view class="card">
     <view class="card-title">数据管理</view>
 
-    <view class="setting-row" wx:if="{{hasDemoData}}">
-      <view class="setting-row-left">
-        <view class="setting-label">清除示例数据</view>
-        <view class="setting-desc">删除预置的示例考试</view>
-      </view>
-      <view class="setting-btn danger" bindtap="clearDemoData">清除</view>
-    </view>
-
     <view class="setting-row">
       <view class="setting-row-left">
         <view class="setting-label">添加示例数据</view>
@@ -223,6 +236,7 @@
       </view>
       <view class="setting-btn" bindtap="importData">导入</view>
     </view>
+  </view>
   </view>
 </view>
 

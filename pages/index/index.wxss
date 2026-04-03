@@ -32,6 +32,32 @@ view, text, navigator, image {
   color: var(--text-secondary);
 }
 
+/* ===== 主内容区域（支持滑动切换）===== */
+.main-content {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 滑动切换动画 */
+.slide-out-left {
+  animation: slideOutLeft 0.28s ease-out;
+}
+.slide-out-right {
+  animation: slideOutRight 0.28s ease-out;
+}
+
+@keyframes slideOutLeft {
+  0% { opacity: 1; transform: translateX(0); }
+  40% { opacity: 0.5; transform: translateX(-15%); }
+  100% { opacity: 0; transform: translateX(-30%); }
+}
+
+@keyframes slideOutRight {
+  0% { opacity: 1; transform: translateX(0); }
+  40% { opacity: 0.5; transform: translateX(15%); }
+  100% { opacity: 0; transform: translateX(30%); }
+}
+
 /* ===== 标签页 ===== */
 .tabs {
   display: flex;
@@ -726,6 +752,11 @@ view, text, navigator, image {
   margin-bottom: 16rpx;
 }
 
+.radar-current-name {
+  color: var(--accent-warm);
+  font-weight: 600;
+}
+
 .radar-compare {
   margin-bottom: 16rpx;
 }
@@ -754,6 +785,10 @@ view, text, navigator, image {
   background: rgba(232, 168, 124, 0.15);
   color: #c07a50;
   font-weight: 600;
+}
+
+.compare-chip.current:active {
+  opacity: 0.7;
 }
 
 .compare-chip.selected {
