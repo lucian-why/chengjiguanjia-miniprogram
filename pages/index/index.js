@@ -8,6 +8,7 @@ const fmt = require('../../utils/format');
 const auth = require('../../utils/auth');
 const cloudSync = require('../../utils/cloudSync');
 const autoSync = require('../../utils/autoSync');
+const ai = require('../../utils/ai');
 
 const defs = require('../../modules/defs');
 
@@ -39,7 +40,12 @@ Page({
     ...defs.profile,
     ...defs.modal,
     ...defs.report,
-    ...defs.auth
+    ...defs.auth,
+
+    // AI 分析
+    aiAnalysisHtml: '',
+    aiAnalysisStatus: '',
+    aiAnalysisBusy: false
   },
 
   onLoad() {
@@ -134,6 +140,60 @@ Page({
 
     this._refreshCurrentExam();
     this._refreshAnalysis();
+  },
+
+  // ======================== AI 分析 ========================
+  async _refreshAnalysis({ force } = {}) {
+    const profileId = this._getActiveProfileId();
+    if (!profileId || profileId === '_none') return;
+
+    try {
+      this.setData({ aiAnalysisBusy: true });
+      const result = await ai.refreshAIAnalysis({
+        force: !!force,
+        getExams: () => storage.getExams(profileId),
+        getActiveProfileName: () => {
+          const p = this.data.profiles[this.data.activeProfileIndex];
+          return p ? p.name : '';
+        },
+        isLogin: () => !!auth.getCurrentUser(),
+        onStatusChange: (status) => {
+          if (this.data.aiAnalysisStatus !== status) {
+            this.setData({ aiAnalysisStatus: status });
+          }
+        }
+      });
+
+      if (result.status === 'cancelled') return;
+
+      if (result.status === 'success' && result.html) {
+        this.setData({ aiAnalysisHtml: result.html, aiAnalysisStatus: 'success' });
+      } else if (result.status === 'login' || result.status === 'notEnough' || result.status === 'error') {
+        this.setData({
+          aiAnalysisHtml: ai.getAnalysisLoadingHTML(result),
+          aiAnalysisStatus: result.status
+        });
+      } else {
+        this.setData({ aiAnalysisHtml: '', aiAnalysisStatus: result.status || '' });
+      }
+    } catch (err) {
+      console.error('[AI] 分析异常:', err);
+    } finally {
+      this.setData({ aiAnalysisBusy: false });
+    }
+  },
+
+  onAIAction() {
+    const s = this.data.aiAnalysisStatus;
+    if (s === 'login') {
+      this.openAuthModal();
+      return;
+    }
+    if (s === 'error') {
+      this._refreshAnalysis({ force: true });
+      return;
+    }
+    this._refreshAnalysis({ force: true });
   },
 
   _saveAndReload() {

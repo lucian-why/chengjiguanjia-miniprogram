@@ -142,7 +142,52 @@ module.exports.getRateClass = function(score) {
 
     <!-- AI 分析卡片 -->
     <block wx:if="{{analysisMode !== 'radar'}}">
-      <rich-text nodes="{{aiAnalysisHtml}}" wx:if="{{aiAnalysisHtml}}"></rich-text>
+      <view class="ai-analysis-card" wx:if="{{aiAnalysisHtml || aiAnalysisStatus}}">
+        <view class="ai-analysis-card__header" wx:if="{{aiAnalysisStatus === 'login'}}">
+          <view>
+            <view class="ai-analysis-card__eyebrow">AI 分析报告</view>
+            <view class="ai-analysis-card__title">需要登录</view>
+          </view>
+          <button class="ai-analysis-card__action" bindtap="openAuthModal">登录后使用</button>
+        </view>
+
+        <view class="ai-analysis-card__loading" wx:elif="{{aiAnalysisStatus === 'loading'}}">
+          <view class="ai-analysis-card__spinner"></view>
+          <text>正在生成 AI 分析...</text>
+        </view>
+
+        <view class="ai-analysis-card__empty" wx:elif="{{aiAnalysisStatus === 'notEnough'}}">
+          <view class="ai-analysis-card__empty-icon">🪄</view>
+          <view class="ai-analysis-card__empty-title">考试数据不足</view>
+          <view class="ai-analysis-card__empty-desc">至少需要 2 场考试成绩才能进行 AI 智能分析</view>
+        </view>
+
+        <block wx:elif="{{aiAnalysisStatus === 'success'}}">
+          <view class="ai-analysis-card__header">
+            <view>
+              <view class="ai-analysis-card__eyebrow">AI 分析报告</view>
+              <view class="ai-analysis-card__title">成绩分析助手</view>
+            </view>
+            <button wx:if="{{!aiAnalysisBusy}}" class="ai-analysis-card__refresh" bindtap="onAIAction">重新分析</button>
+            <button wx:else class="ai-analysis-card__ghost" disabled>分析中</button>
+          </view>
+          <rich-text nodes="{{aiAnalysisHtml}}"></rich-text>
+        </block>
+
+        <view class="ai-analysis-card__error" wx:elif="{{aiAnalysisStatus === 'error'}}">
+          <div class="ai-analysis-card__error-icon">⚠️</div>
+          <p>AI 分析失败，请稍后重试</p>
+          <button class="ai-analysis-card__refresh" style="margin-top:16rpx" bindtap="onAIAction">重试</button>
+        </view>
+
+        <!-- 默认空状态（首次/未触发） -->
+        <view class="ai-analysis-card__empty" wx:else>
+          <view class="ai-analysis-card__empty-icon">🤖</view>
+          <view class="ai-analysis-card__empty-title">AI 成绩分析</view>
+          <view class="ai-analysis-card__empty-desc">基于你的考试成绩，AI 将为你提供个性化学习建议</view>
+          <button class="ai-analysis-card__action" style="margin-top:16rpx" bindtap="onAIAction">开始分析</button>
+        </view>
+      </view>
     </block>
   </view>
 
