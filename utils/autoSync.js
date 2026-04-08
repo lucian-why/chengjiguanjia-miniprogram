@@ -78,13 +78,18 @@ async function performFullSync(reason) {
       const localTime = localProfile ? new Date(localProfile.bundle?.exportedAt || 0).getTime() : 0;
 
       if (!localProfile || cloudTime > localTime) {
-        await runSuppressed(async () => {
-          await cloudSync.downloadProfile(
-            cloudProfile.profileId,
-            cloudProfile.profileId,
-            cloudProfile.profileName
-          );
-        });
+        try {
+          await runSuppressed(async () => {
+            await cloudSync.downloadProfile(
+              cloudProfile.profileId,
+              cloudProfile.profileId,
+              cloudProfile.profileName
+            );
+          });
+        } catch (downloadErr) {
+          // 单个档案下载失败不阻断整体同步（可能是已删除的档案）
+          console.warn('[autoSync] download failed:', cloudProfile.profileId, downloadErr.message);
+        }
       }
     }
 
