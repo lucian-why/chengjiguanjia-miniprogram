@@ -65,13 +65,14 @@ Page({
     this._checkFirstLaunch();
   },
 
-  onShow() {
+  async onShow() {
     this._loadData();
-    this._syncAuthState();
-    if (this.data.isLoggedIn) {
-      auth.refreshUser().then(() => this._syncAuthState()).catch(() => {});
-      autoSync.syncOnShow();
+    // 已登录时优先从云端拉取最新用户信息（昵称等），确保跨端同步
+    if (auth.getCurrentUser()) {
+      await auth.refreshUser().catch(() => {});
     }
+    this._syncAuthState();
+    autoSync.syncOnShow();
   },
 
   onUnload() {
