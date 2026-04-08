@@ -21,17 +21,26 @@ function unwrapResult(result, fallbackMessage) {
 }
 
 async function getCloudProfiles() {
-  ensureLoggedIn();
-  const result = await callFunction('listCloudProfiles', {});
+  const user = ensureLoggedIn();
+  const result = await callFunction('listCloudProfiles', {
+    userId: user.id || '',
+    userEmail: user.email || ''
+  });
   const data = unwrapResult(result, '读取云端档案失败');
   return Array.isArray(data) ? data : [];
 }
 
 async function getDeletedCloudProfiles() {
-  ensureLoggedIn();
-  const result = await callFunction('listCloudProfiles', { showDeleted: true });
+  const user = ensureLoggedIn();
+  const result = await callFunction('listCloudProfiles', {
+    showDeleted: true,
+    userId: user.id || '',
+    userEmail: user.email || ''
+  });
   const data = unwrapResult(result, '读取回收站列表失败');
-  return Array.isArray(data) ? data : [];
+  const rows = Array.isArray(data) ? data : (data?.profiles || data?.list || []);
+  // 只返回标记为已删除的记录
+  return rows.filter(r => r.deleted);
 }
 
 async function uploadProfile(profileId) {
