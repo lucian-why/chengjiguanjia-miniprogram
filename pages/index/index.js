@@ -69,6 +69,7 @@ Page({
     this._loadData();
     this._syncAuthState();
     if (this.data.isLoggedIn) {
+      auth.refreshUser().then(() => this._syncAuthState()).catch(() => {});
       autoSync.syncOnShow();
     }
   },

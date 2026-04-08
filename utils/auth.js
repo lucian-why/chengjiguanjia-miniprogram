@@ -376,6 +376,38 @@ async function updateNickname(userId, nickname) {
   return result.data;
 }
 
+/**
+ * 从云端刷新当前用户信息（昵称等）
+ * 在页面加载时调用，确保多端昵称同步
+ */
+async function refreshUser() {
+  const token = getStoredToken();
+  if (!token) return null;
+
+  try {
+    const result = await callFunction('verifyToken', { token });
+    if (!result || result.code !== 0 || !result.data) {
+      // token 无效，清除本地登录态
+      signOut();
+      return null;
+    }
+
+    const cloudData = result.data;
+    const user = getCurrentUser();
+    if (!user) return null;
+
+    // 更新本地缓存的用户信息
+    user.nickname = cloudData.nickname || user.nickname;
+    user.email = cloudData.email || user.email;
+    user.avatarUrl = cloudData.avatarUrl || user.avatarUrl;
+    saveSession({ token, user });
+    return user;
+  } catch (error) {
+    console.warn('[auth] refreshUser failed:', error);
+    return getCurrentUser();
+  }
+}
+
 module.exports = {
   detectAccountType,
   getCurrentUser,
@@ -387,5 +419,6 @@ module.exports = {
   codeLogin,
   register,
   resetPassword,
-  updateNickname
+  updateNickname,
+  refreshUser
 };
