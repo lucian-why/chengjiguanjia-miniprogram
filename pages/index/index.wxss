@@ -2385,7 +2385,8 @@ view, text, navigator, image {
 }
 
 .ai-analysis-card__empty-desc,
-.ai-analysis-card__error p {
+.ai-analysis-card__error p,
+.ai-analysis-card__error-text {
   margin: 12rpx auto 0;
   max-width: 500rpx;
   font-size: 26rpx;

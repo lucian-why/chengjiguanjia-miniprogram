@@ -175,8 +175,8 @@ module.exports.getRateClass = function(score) {
         </block>
 
         <view class="ai-analysis-card__error" wx:elif="{{aiAnalysisStatus === 'error'}}">
-          <div class="ai-analysis-card__error-icon">⚠️</div>
-          <p>AI 分析失败，请稍后重试</p>
+          <view class="ai-analysis-card__error-icon">⚠️</view>
+          <view class="ai-analysis-card__error-text">AI 分析失败，请稍后重试</view>
           <button class="ai-analysis-card__refresh" style="margin-top:16rpx" bindtap="onAIAction">重试</button>
         </view>
 
