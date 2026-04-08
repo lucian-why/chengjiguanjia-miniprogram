@@ -142,6 +142,51 @@ module.exports.getRateClass = function(score) {
   </view>
 
   <view class="tab-content" wx:if="{{currentTab === 'settings'}}">
+    <!-- 云端账户 -->
+    <view class="card">
+      <view class="card-title">云端账户</view>
+
+      <block wx:if="{{isLoggedIn}}">
+        <view class="auth-status-row">
+          <view class="auth-status-info">
+            <view class="auth-status-name" bindtap="openNicknameModal">{{authDisplayName}}</view>
+            <view class="auth-status-desc">{{authDisplayDesc}}</view>
+          </view>
+          <view class="setting-btn" bindtap="handleLogout">退出</view>
+        </view>
+
+        <view class="sync-status-bar" wx:if="{{syncStatusMessage}}">
+          <text class="sync-status-text {{syncStatusType}}">{{syncStatusMessage}}</text>
+        </view>
+
+        <view class="setting-row">
+          <view class="setting-row-left">
+            <view class="setting-label">🗑️ 回收站</view>
+            <view class="setting-desc">查看和恢复已删除的云端档案。</view>
+          </view>
+          <view class="setting-btn" bindtap="openRecycleBin">打开</view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="auth-status-row">
+          <view class="auth-status-info">
+            <view class="auth-status-name">未登录</view>
+            <view class="auth-status-desc">登录后可启用云端备份与多端同步。</view>
+          </view>
+          <view class="setting-btn green" bindtap="openAuthModal">登录</view>
+        </view>
+
+        <view class="setting-row" wx:if="{{!isLoggedIn}}">
+          <view class="setting-row-left">
+            <view class="setting-label">🗑️ 回收站</view>
+            <view class="setting-desc">需要登录后才能使用回收站。</view>
+          </view>
+          <view class="setting-btn" bindtap="openAuthModal">去登录</view>
+        </view>
+      </block>
+    </view>
+
     <view class="card">
       <view class="card-title">档案管理</view>
       <view class="setting-desc">每个档案都是独立的记录空间，方便分别管理不同学生或不同阶段的成绩。</view>
@@ -202,51 +247,6 @@ module.exports.getRateClass = function(score) {
         </view>
         <view class="setting-btn" bindtap="importData">导入</view>
       </view>
-    </view>
-
-    <!-- 云端账户 -->
-    <view class="card">
-      <view class="card-title">云端账户</view>
-
-      <block wx:if="{{isLoggedIn}}">
-        <view class="auth-status-row">
-          <view class="auth-status-info">
-            <view class="auth-status-name" bindtap="openNicknameModal">{{authDisplayName}}</view>
-            <view class="auth-status-desc">{{authDisplayDesc}}</view>
-          </view>
-          <view class="setting-btn" bindtap="handleLogout">退出</view>
-        </view>
-
-        <view class="sync-status-bar" wx:if="{{syncStatusMessage}}">
-          <text class="sync-status-text {{syncStatusType}}">{{syncStatusMessage}}</text>
-        </view>
-
-        <view class="setting-row">
-          <view class="setting-row-left">
-            <view class="setting-label">🗑️ 回收站</view>
-            <view class="setting-desc">查看和恢复已删除的云端档案。</view>
-          </view>
-          <view class="setting-btn" bindtap="openRecycleBin">打开</view>
-        </view>
-      </block>
-
-      <block wx:else>
-        <view class="auth-status-row">
-          <view class="auth-status-info">
-            <view class="auth-status-name">未登录</view>
-            <view class="auth-status-desc">登录后可启用云端备份与多端同步。</view>
-          </view>
-          <view class="setting-btn green" bindtap="openAuthModal">登录</view>
-        </view>
-
-        <view class="setting-row" wx:if="{{!isLoggedIn}}">
-          <view class="setting-row-left">
-            <view class="setting-label">🗑️ 回收站</view>
-            <view class="setting-desc">需要登录后才能使用回收站。</view>
-          </view>
-          <view class="setting-btn" bindtap="openAuthModal">去登录</view>
-        </view>
-      </block>
     </view>
   </view>
 </view>
