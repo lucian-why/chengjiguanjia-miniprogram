@@ -139,6 +139,11 @@ module.exports.getRateClass = function(score) {
         <view class="chart-empty-text">{{radarEmptyText}}</view>
       </view>
     </view>
+
+    <!-- AI 分析卡片 -->
+    <block wx:if="{{analysisMode !== 'radar'}}">
+      <rich-text nodes="{{aiAnalysisHtml}}" wx:if="{{aiAnalysisHtml}}"></rich-text>
+    </block>
   </view>
 
   <view class="tab-content" wx:if="{{currentTab === 'settings'}}">
