@@ -1,5 +1,5 @@
 ﻿/**
- * 閹存劗鍝楃粻鈥愁啀 - Main page (refactored: thin glue layer)
+ * 成绩雷达 - Main page (refactored: thin glue layer)
  * Architecture: module factory + Object.assign mixin in onLoad
  */
 
@@ -83,7 +83,7 @@ Page({
   onShareAppMessage() {
     const profile = this.data.profiles[this.data.activeProfileIndex];
     return {
-      title: '閹存劗鍝楃粻鈥愁啀 - ' + (profile ? profile.name : '閹存垹娈戦幋鎰摋'),
+      title: '成绩雷达 - ' + (profile ? profile.name : '成绩管理'),
       path: '/pages/index/index'
     };
   },
@@ -161,14 +161,14 @@ Page({
 
   noop() {},
 
-  // ======================== 濠婃垵濮╅崚鍥ㄥ床閺嶅洨顒锋い?========================
+  // ======================== 手势滑动区域 ========================
   _touchStartX: 0,
   _touchStartY: 0,
   _touchMoving: false,
   _tabIndex: { exam: 0, trend: 1, settings: 2 },
   _tabKeys: ['exam', 'trend', 'settings'],
 
-  // ======================== 闂堛垺婢樺锔界拨閹靛濞?========================
+  // ======================== 面板滑动区域 ========================
   _panelTouchStartX: 0,
   _panelTouchStartY: 0,
   _panelTouchMoving: false,
@@ -326,7 +326,7 @@ Page({
       authMode: nextMode,
       authTitle: meta.title,
       authSubmitText: meta.submitText,
-      authSendCodeText: '鍙戦€侀獙璇佺爜',
+      authSendCodeText: '发送验证码',
       authAccount: '',
       authCode: '',
       authPassword: '',
@@ -353,19 +353,121 @@ Page({
     this._setAuthStatus('', '');
   },
 
+  // 登录模式切换快捷方法
+  switchToSmsLogin() {
+    this._resetAuthForm('sms_login', '请输入手机号或邮箱，发送验证码登录。');
+  },
+
+  switchToPasswordLogin() {
+    this._resetAuthForm('login', '');
+  },
+
+  switchToRegister() {
+    this._resetAuthForm('register', '请输入手机号或邮箱，发送验证码后设置密码完成注册。');
+  },
+
+  switchToResetPwd() {
+    this._resetAuthForm('resetpwd', '请输入注册邮箱或手机号，发送验证码后设置新密码。');
+  },
+
+  // 发送验证码别名
+  handleSendCode() {
+    this.sendAuthCode();
+  },
+
+  // 提交登录别名
+  handleAuthSubmit() {
+    this.submitAuth();
+  },
+
+  // 退出登录别名
+  handleLogout() {
+    this.logout();
+  },
+
+  // 昵称弹窗
+  openNicknameModal() {
+    const user = auth.getCurrentUser();
+    this.setData({
+      showNicknameModal: true,
+      nicknameValue: user ? (user.nickname || '') : ''
+    });
+  },
+
+  closeNicknameModal() {
+    this.setData({ showNicknameModal: false, nicknameValue: '' });
+  },
+
+  onNicknameInput(e) {
+    this.setData({ nicknameValue: e.detail.value });
+  },
+
+  async saveNickname() {
+    const newName = (this.data.nicknameValue || '').trim();
+    if (!newName) {
+      wx.showToast({ title: '请输入昵称', icon: 'none' });
+      return;
+    }
+
+    const user = auth.getCurrentUser();
+    if (!user || !user.id) {
+      wx.showToast({ title: '请先登录', icon: 'none' });
+      return;
+    }
+
+    try {
+      this.setData({ nicknameSaving: true });
+      await auth.updateNickname(user.id, newName);
+      this._syncAuthState();
+      this.closeNicknameModal();
+      wx.showToast({ title: '昵称已更新', icon: 'success' });
+    } catch (error) {
+      wx.showToast({ title: error.message || '更新失败', icon: 'none' });
+    } finally {
+      this.setData({ nicknameSaving: false });
+    }
+  },
+
+  // 回收站选中切换（wxml 绑定别名）
+  toggleDeletedProfile(e) {
+    const index = e.currentTarget.dataset.index;
+    const list = this.data.deletedCloudProfiles;
+    if (!list || index >= list.length) return;
+
+    list[index]._selected = !list[index]._selected;
+    this.setData({ deletedCloudProfiles: list });
+
+    const selectedIds = list.filter(item => item._selected).map(item => item.profileId);
+    this.setData({ deletedProfileSelection: selectedIds });
+  },
+
   switchAuthMode(e) {
     const mode = e.currentTarget.dataset.mode;
     this._resetAuthForm(mode, '');
   },
 
   onAuthInput(e) {
-    const field = e.currentTarget.dataset.field;
-    this.setData({ [field]: e.detail.value });
+    const rawField = e.currentTarget.dataset.field;
+    const fieldMap = {
+      account: 'authAccount',
+      code: 'authCode',
+      password: 'authPassword',
+      newPassword: 'authNewPassword',
+      confirmPassword: 'authConfirmPassword'
+    };
+    const dataKey = fieldMap[rawField] || rawField;
+    this.setData({ [dataKey]: e.detail.value });
   },
 
-  toggleAuthPassword(e) {
-    const field = e.currentTarget.dataset.field;
-    this.setData({ [field]: !this.data[field] });
+  toggleAuthPasswordVisible(e) {
+    const rawField = e.currentTarget.dataset.field;
+    const fieldMap = {
+      password: 'authPasswordVisible',
+      newPassword: 'authNewPasswordVisible',
+      confirmPassword: 'authConfirmPasswordVisible'
+    };
+    const dataKey = fieldMap[rawField] || rawField;
+    this.setData({ [dataKey]: !this.data[dataKey] });
   },
 
   _startAuthCountdown() {
@@ -379,7 +481,7 @@ Page({
       if (next <= 0) {
         clearInterval(this._authCountdownTimer);
         this._authCountdownTimer = null;
-        this.setData({ authCountdown: 0, authSendingCode: false, authSendCodeText: '鍙戦€侀獙璇佺爜' });
+        this.setData({ authCountdown: 0, authSendingCode: false, authSendCodeText: '发送验证码' });
         return;
       }
       this.setData({ authCountdown: next, authSendCodeText: next + 's' });
@@ -582,12 +684,22 @@ Page({
       const deletedProfiles = await cloudSync.getDeletedCloudProfiles();
       this.setData({
         showRecycleBinPicker: true,
-        deletedCloudProfiles: deletedProfiles.map((item) => ({
-          profileId: item.profileId,
-          profileName: item.profileName || '未命名档案',
-          examCount: Number(item.examCount || 0),
-          deletedAtLabel: this._formatSyncTime(item.deletedAt || item.updatedAt || item.createdAt)
-        })),
+        deletedCloudProfiles: deletedProfiles.map((item) => {
+          const deletedTime = item.deletedAt || item.updatedAt || item.createdAt;
+          const daysLeft = deletedTime ? Math.max(0, 30 - Math.floor((Date.now() - new Date(deletedTime).getTime()) / 86400000)) : 30;
+          const sizeBytes = Number(item.dataSize || item.data_size || 0);
+          const dataSizeText = sizeBytes < 1024 ? `${sizeBytes} B` : (sizeBytes < 1048576 ? `${(sizeBytes / 1024).toFixed(1)} KB` : `${(sizeBytes / 1048576).toFixed(2)} MB`);
+          return {
+            profileId: item.profileId,
+            profileName: item.profileName || '未命名档案',
+            examCount: Number(item.examCount || 0),
+            deletedAtLabel: this._formatSyncTime(deletedTime),
+            _dataSize: dataSizeText,
+            _deletedAt: this._formatSyncTime(deletedTime) || '未知',
+            _daysLeft: daysLeft,
+            _selected: false
+          };
+        }),
         deletedProfileSelection: []
       });
       this._setSyncStatus(
@@ -653,18 +765,31 @@ Page({
       return;
     }
 
-    try {
-      this.setData({ recycleBusy: true });
-      this._setSyncStatus('正在彻底删除...', 'pending');
-      await cloudSync.purgeDeletedProfiles(selectedIds);
-      await this.openRecycleBin();
-      this._setSyncStatus('已彻底删除选中档案', 'success');
-      wx.showToast({ title: '删除成功', icon: 'success' });
-    } catch (error) {
-      this._setSyncStatus(error.message || '删除失败', 'error');
-      wx.showToast({ title: '删除失败', icon: 'none' });
-    } finally {
-      this.setData({ recycleBusy: false });
-    }
+    this.data._confirmCallback = async () => {
+      try {
+        this.setData({ recycleBusy: true });
+        this._setSyncStatus('正在彻底删除...', 'pending');
+        await cloudSync.purgeDeletedProfiles(selectedIds);
+        await this.openRecycleBin();
+        this._setSyncStatus('已彻底删除选中档案', 'success');
+        wx.showToast({ title: '删除成功', icon: 'success' });
+      } catch (error) {
+        this._setSyncStatus(error.message || '删除失败', 'error');
+        wx.showToast({ title: '删除失败', icon: 'none' });
+      } finally {
+        this.setData({ recycleBusy: false });
+      }
+    };
+
+    this.setData({
+      showConfirmModal: true,
+      confirmIcon: '⚠️',
+      confirmIconType: 'danger',
+      confirmTitle: '彻底删除？',
+      confirmMessage: '此操作不可恢复！将永久删除选中档案的所有数据。',
+      confirmOkText: '彻底删除',
+      confirmOkClass: 'btn-danger',
+      confirmShowCancel: true
+    });
   }
 });

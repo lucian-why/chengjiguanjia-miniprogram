@@ -203,6 +203,51 @@ module.exports.getRateClass = function(score) {
         <view class="setting-btn" bindtap="importData">导入</view>
       </view>
     </view>
+
+    <!-- 云端账户 -->
+    <view class="card">
+      <view class="card-title">云端账户</view>
+
+      <block wx:if="{{isLoggedIn}}">
+        <view class="auth-status-row">
+          <view class="auth-status-info">
+            <view class="auth-status-name" bindtap="openNicknameModal">{{authDisplayName}}</view>
+            <view class="auth-status-desc">{{authDisplayDesc}}</view>
+          </view>
+          <view class="setting-btn" bindtap="handleLogout">退出</view>
+        </view>
+
+        <view class="sync-status-bar" wx:if="{{syncStatusMessage}}">
+          <text class="sync-status-text {{syncStatusType}}">{{syncStatusMessage}}</text>
+        </view>
+
+        <view class="setting-row">
+          <view class="setting-row-left">
+            <view class="setting-label">🗑️ 回收站</view>
+            <view class="setting-desc">查看和恢复已删除的云端档案。</view>
+          </view>
+          <view class="setting-btn" bindtap="openRecycleBin">打开</view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="auth-status-row">
+          <view class="auth-status-info">
+            <view class="auth-status-name">未登录</view>
+            <view class="auth-status-desc">登录后可启用云端备份与多端同步。</view>
+          </view>
+          <view class="setting-btn green" bindtap="openAuthModal">登录</view>
+        </view>
+
+        <view class="setting-row" wx:if="{{!isLoggedIn}}">
+          <view class="setting-row-left">
+            <view class="setting-label">🗑️ 回收站</view>
+            <view class="setting-desc">需要登录后才能使用回收站。</view>
+          </view>
+          <view class="setting-btn" bindtap="openAuthModal">去登录</view>
+        </view>
+      </block>
+    </view>
   </view>
 </view>
 
@@ -555,6 +600,151 @@ module.exports.getRateClass = function(score) {
     <view class="modal-footer">
       <view class="btn btn-secondary" bindtap="closeBatchModal">取消</view>
       <view class="btn btn-primary" bindtap="saveBatch">全部保存</view>
+    </view>
+  </view>
+</view>
+
+<!-- 登录弹窗 -->
+<view class="modal-mask" wx:if="{{showAuthModal}}" bindtap="closeAuthModal">
+  <view class="modal auth-modal" catchtap="" catchtouchmove="">
+    <view class="modal-header">
+      <view class="modal-title">{{authTitle}}</view>
+      <view class="modal-close" bindtap="closeAuthModal">×</view>
+    </view>
+    <scroll-view scroll-y class="auth-modal-body">
+      <!-- 账号输入 -->
+      <view class="form-group">
+        <view class="form-label">邮箱 / 手机号</view>
+        <input class="form-input" placeholder="请输入邮箱或手机号" value="{{authAccount}}" bindinput="onAuthInput" data-field="account" maxlength="100" />
+      </view>
+
+      <!-- 密码区域（默认展示） -->
+      <view class="form-group" wx:if="{{authShowPasswordSection}}">
+        <view class="form-label">密码</view>
+        <view class="auth-password-wrap">
+          <input class="form-input auth-password-input" placeholder="{{authMode === 'register' ? '设置密码（至少6位）' : '请输入密码'}}" 
+            password="{{!authPasswordVisible}}" value="{{authPassword}}" bindinput="onAuthInput" data-field="password" maxlength="64" />
+          <view class="auth-pwd-toggle" bindtap="toggleAuthPasswordVisible" data-field="password">
+            <text>{{authPasswordVisible ? '🙈' : '👁'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 验证码区域 -->
+      <view class="form-group" wx:if="{{authShowCodeSection}}">
+        <view class="form-label">验证码</view>
+        <view class="auth-code-row">
+          <input class="form-input auth-code-input" type="number" placeholder="6位验证码" value="{{authCode}}" bindinput="onAuthInput" data-field="code" maxlength="6" />
+          <view class="auth-send-code-btn {{authSendingCode || authCountdown > 0 ? 'disabled' : ''}}" bindtap="handleSendCode">
+            {{authSendingCode ? '发送中…' : (authCountdown > 0 ? authCountdown + 's' : '发送验证码')}}
+          </view>
+        </view>
+      </view>
+
+      <!-- 找回密码专用 -->
+      <block wx:if="{{authShowResetSection}}">
+        <view class="form-group">
+          <view class="form-label">新密码</view>
+          <view class="auth-password-wrap">
+            <input class="form-input auth-password-input" placeholder="至少6位" password="{{!authNewPasswordVisible}}" value="{{authNewPassword}}" bindinput="onAuthInput" data-field="newPassword" maxlength="64" />
+            <view class="auth-pwd-toggle" bindtap="toggleAuthPasswordVisible" data-field="newPassword">
+              <text>{{authNewPasswordVisible ? '🙈' : '👁'}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="form-group">
+          <view class="form-label">确认新密码</view>
+          <view class="auth-password-wrap">
+            <input class="form-input auth-password-input" placeholder="再次输入" password="{{!authConfirmPasswordVisible}}" value="{{authConfirmPassword}}" bindinput="onAuthInput" data-field="confirmPassword" maxlength="64" />
+            <view class="auth-pwd-toggle" bindtap="toggleAuthPasswordVisible" data-field="confirmPassword">
+              <text>{{authConfirmPasswordVisible ? '🙈' : '👁'}}</text>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 提交按钮 -->
+      <view class="auth-submit-area">
+        <view class="btn btn-primary auth-submit-btn {{authSubmitting ? 'disabled' : ''}}" bindtap="handleAuthSubmit">
+          {{authSubmitting ? '处理中…' : authSubmitText}}
+        </view>
+      </view>
+
+      <!-- 底部操作链接 -->
+      <view class="auth-footer-links">
+        <view class="auth-link" wx:if="{{authShowSmsLink}}" bindtap="switchToSmsLogin">📨 验证码登录</view>
+        <view class="auth-link" wx:if="{{authShowLoginLink}}" bindtap="switchToPasswordLogin">🔑 密码登录</view>
+        <view class="auth-link" wx:if="{{authShowRegisterLink}}" bindtap="switchToRegister">📝 注册账号</view>
+        <view class="auth-link" wx:if="{{authShowResetLink}}" bindtap="switchToResetPwd">忘记密码？</view>
+        <view class="auth-link" wx:if="{{authMode !== 'login'}}" bindtap="switchToPasswordLogin">← 返回登录</view>
+      </view>
+
+      <!-- 状态提示 -->
+      <view class="auth-status-msg {{authStatusType}}" wx:if="{{authStatusMessage}}">{{authStatusMessage}}</view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 修改昵称弹窗 -->
+<view class="modal-mask" wx:if="{{showNicknameModal}}" bindtap="closeNicknameModal">
+  <view class="modal" catchtap="" catchtouchmove="">
+    <view class="modal-header">
+      <view class="modal-title">✏️ 修改昵称</view>
+      <view class="modal-close" bindtap="closeNicknameModal">×</view>
+    </view>
+    <view class="modal-body">
+      <view class="form-group">
+        <input class="form-input" placeholder="输入新昵称" maxlength="20" value="{{nicknameValue}}" bindinput="onNicknameInput" focus="{{true}}" />
+      </view>
+    </view>
+    <view class="modal-footer">
+      <view class="btn btn-secondary" bindtap="closeNicknameModal">取消</view>
+      <view class="btn btn-primary {{nicknameSaving ? 'disabled' : ''}}" bindtap="saveNickname">{{nicknameSaving ? '保存中…' : '保存'}}</view>
+    </view>
+  </view>
+</view>
+
+<!-- 回收站弹窗 -->
+<view class="modal-mask" wx:if="{{showRecycleBinPicker}}" bindtap="closeRecycleBin">
+  <view class="modal recycle-modal" catchtap="" catchtouchmove="">
+    <view class="modal-header">
+      <view class="modal-title">🗑️ 回收站</view>
+      <view class="modal-close" bindtap="closeRecycleBin">×</view>
+    </view>
+    <scroll-view scroll-y class="recycle-body">
+      <view class="recycle-subtitle">已删除的档案可在此恢复，超过30天将自动彻底删除。</view>
+
+      <view class="recycle-loading" wx:if="{{recycleBusy}}">
+        <text>正在读取回收站…</text>
+      </view>
+
+      <view class="recycle-empty" wx:elif="{{deletedCloudProfiles.length === 0}}">
+        <view class="recycle-empty-icon">🗑️</view>
+        <view class="recycle-empty-text">回收站是空的</view>
+      </view>
+
+      <block wx:else>
+        <view class="recycle-list">
+          <view class="recycle-item" wx:for="{{deletedCloudProfiles}}" wx:key="profileId">
+            <view class="recycle-item-check">
+              <view class="recycle-checkbox {{item._selected ? 'checked' : ''}}" bindtap="toggleDeletedProfile" data-index="{{index}}"></view>
+            </view>
+            <view class="recycle-item-main">
+              <view class="recycle-item-name">{{item.profileName}}</view>
+              <view class="recycle-item-meta">{{item.examCount}} 场考试 · {{item._dataSize}}</view>
+              <view class="recycle-item-time">删除时间：{{item._deletedAt}} · 剩余 {{item._daysLeft}} 天</view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </scroll-view>
+    <view class="modal-footer" wx:if="{{deletedCloudProfiles.length > 0}}">
+      <view class="btn btn-secondary" bindtap="closeRecycleBin">关闭</view>
+      <view class="btn btn-primary" bindtap="restoreDeletedProfiles" disabled="{{recycleBusy}}">恢复选中</view>
+      <view class="btn btn-danger" bindtap="purgeDeletedProfiles" disabled="{{recycleBusy}}">彻底删除</view>
+    </view>
+    <view class="modal-footer" wx:else>
+      <view class="btn btn-secondary" bindtap="closeRecycleBin">关闭</view>
     </view>
   </view>
 </view>

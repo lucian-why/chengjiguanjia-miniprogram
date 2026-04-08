@@ -1963,3 +1963,272 @@ view, text, navigator, image {
   color: var(--text-secondary);
   font-size: 24rpx;
 }
+
+/* ===== 云端账户状态区 ===== */
+.auth-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+}
+
+.auth-status-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-status-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.auth-status-desc {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  margin-top: 4rpx;
+}
+
+.sync-status-bar {
+  padding: 12rpx 16rpx;
+  margin: 8rpx 0;
+  border-radius: 12rpx;
+  background: rgba(124, 169, 201, 0.08);
+}
+
+.sync-status-text {
+  font-size: 22rpx;
+}
+
+.sync-status-text.pending {
+  color: #e8a87c;
+}
+
+.sync-status-text.success {
+  color: #4caf50;
+}
+
+.sync-status-text.error {
+  color: #ef4444;
+}
+
+.sync-status-text.info {
+  color: var(--accent-blue);
+}
+
+/* ===== 登录弹窗 ===== */
+.auth-modal {
+  max-height: 85vh;
+}
+
+.auth-modal-body {
+  padding: 24rpx;
+  max-height: 65vh;
+}
+
+.auth-password-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.auth-password-input {
+  flex: 1;
+}
+
+.auth-pwd-toggle {
+  padding: 12rpx;
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.auth-code-row {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+}
+
+.auth-code-input {
+  flex: 1;
+}
+
+.auth-send-code-btn {
+  flex-shrink: 0;
+  padding: 14rpx 20rpx;
+  background: var(--accent-blue);
+  color: #fff;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+  white-space: nowrap;
+}
+
+.auth-send-code-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.auth-submit-area {
+  margin-top: 24rpx;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  text-align: center;
+  font-size: 30rpx;
+  padding: 20rpx;
+  border-radius: 16rpx;
+}
+
+.auth-submit-btn.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.auth-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  justify-content: center;
+  margin-top: 20rpx;
+}
+
+.auth-link {
+  font-size: 24rpx;
+  color: var(--accent-blue);
+  padding: 8rpx 4rpx;
+}
+
+.auth-status-msg {
+  text-align: center;
+  font-size: 24rpx;
+  margin-top: 16rpx;
+  padding: 12rpx;
+  border-radius: 12rpx;
+}
+
+.auth-status-msg.pending {
+  color: #e8a87c;
+  background: rgba(232, 168, 124, 0.1);
+}
+
+.auth-status-msg.success {
+  color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.auth-status-msg.error {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.auth-status-msg.info {
+  color: var(--accent-blue);
+  background: rgba(124, 169, 201, 0.1);
+}
+
+/* ===== 回收站弹窗 ===== */
+.recycle-modal {
+  max-height: 85vh;
+}
+
+.recycle-body {
+  padding: 24rpx;
+  max-height: 65vh;
+}
+
+.recycle-subtitle {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  margin-bottom: 20rpx;
+}
+
+.recycle-loading {
+  text-align: center;
+  padding: 40rpx;
+  color: var(--text-secondary);
+  font-size: 26rpx;
+}
+
+.recycle-empty {
+  text-align: center;
+  padding: 60rpx 0;
+}
+
+.recycle-empty-icon {
+  font-size: 56rpx;
+  margin-bottom: 16rpx;
+}
+
+.recycle-empty-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.recycle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.recycle-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 20rpx;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12rpx;
+  border: 1rpx solid var(--border-color);
+}
+
+.recycle-item-check {
+  padding-top: 8rpx;
+}
+
+.recycle-checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  border: 2rpx solid var(--border-color);
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recycle-checkbox.checked {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.recycle-checkbox.checked::after {
+  content: '✓';
+  color: #fff;
+  font-size: 22rpx;
+}
+
+.recycle-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.recycle-item-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recycle-item-meta {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  margin-top: 4rpx;
+}
+
+.recycle-item-time {
+  font-size: 20rpx;
+  color: var(--text-tertiary, #999);
+  margin-top: 4rpx;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+}
