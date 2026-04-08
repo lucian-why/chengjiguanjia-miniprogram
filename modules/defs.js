@@ -1,38 +1,25 @@
 /**
  * 页面 data 默认值定义
- * 按 功能模块 分组，index.js 通过 Object spread 合并
+ * 按功能模块分组，index.js 通过 Object spread 合并
  */
 
-// 全局状态（不属于任何子模块，由 index.js 直接管理）
 module.exports._global = {
-  // 档案
   profiles: [],
   activeProfileIndex: 0,
   profileNames: [],
-
-  // 标签页
   currentTab: 'exam',
-
-  // 考试列表
   exams: [],
   currentExamId: '',
   currentExam: null,
   showDetailPanel: false,
-
-  // 数据标记
+  isEditingTotalScore: false,
+  editingTotalScore: '',
   hasDemoData: false,
-
-  // 滑动动画方向
   _slideDirection: '',
-
-  // 成绩全屏视图
   showScoreView: false,
-
-  // 面板左滑动画状态
   _panelSlidingOut: false
 };
 
-// 考试模块 data
 module.exports.exam = {
   editExamId: '',
   showExamModal: false,
@@ -48,7 +35,6 @@ module.exports.exam = {
   }
 };
 
-// 成绩模块 data
 module.exports.score = {
   editSubjectIndex: null,
   showScoreModal: false,
@@ -62,30 +48,23 @@ module.exports.score = {
   }
 };
 
-// 批量填写模块 data
 module.exports.batch = {
   showBatchModal: false,
   batchList: [],
   newBatchSubject: ''
 };
 
-// 图表模块 data
 module.exports.chart = {
-  // 分析模式
   analysisMode: 'score',
   selectedChartSubject: '',
   rankType: 'class',
   subjectNames: [],
   trendEmpty: false,
-
-  // 雷达图
   radarExams: [],
   compareExams: [],
   selectedCompareCount: 0,
   radarEmpty: false,
   radarEmptyText: '选择考试后查看各科得分率分析',
-
-  // 图表放大
   showChartZoom: false,
   chartZoomType: '',
   chartZoomTitle: '',
@@ -93,7 +72,6 @@ module.exports.chart = {
   zoomRankType: 'class'
 };
 
-// 档案管理模块 data
 module.exports.profile = {
   showProfilePicker: false,
   showAddProfile: false,
@@ -103,7 +81,6 @@ module.exports.profile = {
   _renameProfileIndex: null
 };
 
-// 确认弹窗 data
 module.exports.modal = {
   showConfirmModal: false,
   confirmIcon: '',
@@ -116,11 +93,56 @@ module.exports.modal = {
   _confirmCallback: null
 };
 
-// 分享报告 data
 module.exports.report = {
   showReportModal: false,
   reportType: '',
   reportLoading: false,
   reportImage: '',
   reportCanvasHeight: 800
+};
+
+module.exports.auth = {
+  authUser: null,
+  isLoggedIn: false,
+  showAuthModal: false,
+  showNicknameModal: false,
+  authMode: 'login',
+  authTitle: '账号登录',
+  authSubmitText: '登录',
+  authDisplayName: '未登录',
+  authDisplayDesc: '先登录账号，后续小程序会继续接入云端备份与恢复。',
+  authDisplayHint: '',
+  authSendCodeText: '发送验证码',
+  authShowPasswordSection: true,
+  authShowCodeSection: false,
+  authShowResetSection: false,
+  authShowLoginLink: false,
+  authShowSmsLink: true,
+  authShowRegisterLink: true,
+  authShowResetLink: true,
+  authAccount: '',
+  authCode: '',
+  authPassword: '',
+  authConfirmPassword: '',
+  authNewPassword: '',
+  authStatusMessage: '',
+  authStatusType: '',
+  authSendingCode: false,
+  authCountdown: 0,
+  authSubmitting: false,
+  syncBusy: false,
+  syncStatusMessage: '',
+  syncStatusType: '',
+  syncLastAt: '',
+  showCloudRestorePicker: false,
+  cloudRestoreProfiles: [],
+  showRecycleBinPicker: false,
+  deletedCloudProfiles: [],
+  deletedProfileSelection: [],
+  recycleBusy: false,
+  nicknameValue: '',
+  nicknameSaving: false,
+  authPasswordVisible: false,
+  authNewPasswordVisible: false,
+  authConfirmPasswordVisible: false
 };

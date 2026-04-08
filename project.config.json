@@ -1,6 +1,6 @@
 {
-  "appid": "touristappid",
-  "projectname": "成绩管家_小程序",
+  "appid": "wx07532e8f45b25fe6",
+  "projectname": "成绩雷达_小程序",
   "compileType": "miniprogram",
   "libVersion": "3.6.1",
   "setting": {
@@ -16,7 +16,28 @@
     "packNpmManually": false,
     "minifyWXSS": true,
     "minifyWXML": true,
-    "ignoreUploadUnusedFiles": true
+    "ignoreUploadUnusedFiles": true,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmRelationList": [],
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
   },
-  "condition": {}
+  "condition": {},
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {}
 }

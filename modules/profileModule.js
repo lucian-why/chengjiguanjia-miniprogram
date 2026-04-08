@@ -1,4 +1,6 @@
 const storage = require('../utils/storage');
+const auth = require('../utils/auth');
+const cloudSync = require('../utils/cloudSync');
 
 function createProfileModule(page) {
   function switchProfileByIndex(index, toastTitle) {
@@ -113,13 +115,71 @@ function createProfileModule(page) {
       confirmOkText: '删除',
       confirmOkClass: 'btn-danger',
       confirmShowCancel: true,
-      _confirmCallback: () => {
+      _confirmCallback: async () => {
         storage.deleteProfile(profile.id);
         page.setData({ activeProfileIndex: 0, currentExamId: '', currentExam: null, showDetailPanel: false });
         page._saveAndReload();
+
+        if (page.data.isLoggedIn) {
+          try {
+            await cloudSync.deleteCloudProfiles([profile.id]);
+            page._setSyncStatus(`已将“${profile.name}”移入云端回收站`, 'success');
+          } catch (error) {
+            page._setSyncStatus(error.message || '云端回收站同步失败', 'error');
+          }
+          wx.showToast({ title: '已删除，可在回收站恢复', icon: 'none' });
+          return;
+        }
+
         wx.showToast({ title: '已删除', icon: 'success' });
       }
     });
+  }
+
+  function openNicknameModal() {
+    if (!page.data.isLoggedIn || !page.data.authUser) return;
+    page.setData({
+      showNicknameModal: true,
+      nicknameValue: page.data.authUser.nickname || ''
+    });
+  }
+
+  function closeNicknameModal() {
+    page.setData({
+      showNicknameModal: false,
+      nicknameValue: '',
+      nicknameSaving: false
+    });
+  }
+
+  function onNicknameInput(e) {
+    page.setData({ nicknameValue: e.detail.value });
+  }
+
+  async function saveNickname() {
+    const user = page.data.authUser;
+    const nickname = String(page.data.nicknameValue || '').trim();
+    if (!user) return;
+    if (!nickname) {
+      wx.showToast({ title: '请输入昵称', icon: 'none' });
+      return;
+    }
+
+    try {
+      page.setData({ nicknameSaving: true });
+      if (user.isAdmin) {
+        const nextUser = { ...user, nickname };
+        wx.setStorageSync('xueji_auth_user', JSON.stringify(nextUser));
+      } else {
+        await auth.updateNickname(user.id, nickname);
+      }
+      page._syncAuthState();
+      closeNicknameModal();
+      wx.showToast({ title: '昵称已更新', icon: 'success' });
+    } catch (error) {
+      wx.showToast({ title: error.message || '修改失败', icon: 'none' });
+      page.setData({ nicknameSaving: false });
+    }
   }
 
   return {
@@ -136,7 +196,11 @@ function createProfileModule(page) {
     closeRenameModal,
     onRenameInput,
     confirmRename,
-    confirmDeleteProfile
+    confirmDeleteProfile,
+    openNicknameModal,
+    closeNicknameModal,
+    onNicknameInput,
+    saveNickname
   };
 }
 

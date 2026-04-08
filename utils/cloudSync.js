@@ -1,0 +1,133 @@
+const auth = require('./auth');
+const storage = require('./storage');
+const { callFunction } = require('./cloud');
+
+function ensureLoggedIn() {
+  const user = auth.getCurrentUser();
+  if (!user) {
+    throw new Error('请先登录后再使用云端同步');
+  }
+  return user;
+}
+
+function unwrapResult(result, fallbackMessage) {
+  if (!result) {
+    throw new Error(fallbackMessage);
+  }
+  if (typeof result.code === 'number' && result.code !== 0) {
+    throw new Error(result.message || fallbackMessage);
+  }
+  return result.data || result;
+}
+
+async function getCloudProfiles() {
+  ensureLoggedIn();
+  const result = await callFunction('listCloudProfiles', {});
+  const data = unwrapResult(result, '读取云端档案失败');
+  return Array.isArray(data) ? data : [];
+}
+
+async function getDeletedCloudProfiles() {
+  ensureLoggedIn();
+  const result = await callFunction('listCloudProfiles', { showDeleted: true });
+  const data = unwrapResult(result, '读取回收站列表失败');
+  return Array.isArray(data) ? data : [];
+}
+
+async function uploadProfile(profileId) {
+  const user = ensureLoggedIn();
+  const bundleInfo = storage.getLocalProfileBundle(profileId);
+  if (!bundleInfo) {
+    throw new Error('未找到要上传的本地档案');
+  }
+
+  const result = await callFunction('uploadCloudProfile', {
+    profileId: bundleInfo.profileId,
+    profileName: bundleInfo.profileName,
+    profileData: bundleInfo.bundle,
+    examCount: bundleInfo.examCount,
+    dataSize: bundleInfo.dataSize,
+    userEmail: user.email || ''
+  });
+
+  return unwrapResult(result, '上传到云端失败');
+}
+
+async function downloadProfile(cloudProfileId, targetProfileId, targetProfileName) {
+  ensureLoggedIn();
+  if (!cloudProfileId) {
+    throw new Error('缺少要恢复的云端档案');
+  }
+
+  const result = await callFunction('getCloudProfileData', { profileId: cloudProfileId });
+  const data = unwrapResult(result, '读取云端档案详情失败');
+
+  const rawPayload = data.bundle || data.profileData || data.profile_data || data;
+  const payload = JSON.parse(JSON.stringify(rawPayload));
+
+  if (payload && payload.profile && targetProfileId) {
+    payload.profile.id = targetProfileId;
+    payload.profile.name = targetProfileName || payload.profile.name;
+    if (Array.isArray(payload.exams)) {
+      payload.exams = payload.exams.map((exam) => ({
+        ...exam,
+        profileId: targetProfileId
+      }));
+    }
+  }
+
+  storage.applyCloudProfileBundle(payload);
+  return data;
+}
+
+async function deleteCloudProfiles(profileIds) {
+  const user = ensureLoggedIn();
+  const ids = Array.isArray(profileIds) ? profileIds.filter(Boolean) : [];
+  if (!ids.length) {
+    throw new Error('请选择要移入回收站的档案');
+  }
+
+  const result = await callFunction('deleteCloudProfiles', {
+    profileIds: ids,
+    userEmail: user.email || ''
+  });
+  return unwrapResult(result, '删除云端档案失败');
+}
+
+async function restoreDeletedProfiles(profileIds) {
+  const user = ensureLoggedIn();
+  const ids = Array.isArray(profileIds) ? profileIds.filter(Boolean) : [];
+  if (!ids.length) {
+    throw new Error('请选择要恢复的档案');
+  }
+
+  const result = await callFunction('restoreCloudProfiles', {
+    profileIds: ids,
+    userEmail: user.email || ''
+  });
+  return unwrapResult(result, '恢复档案失败');
+}
+
+async function purgeDeletedProfiles(profileIds) {
+  const user = ensureLoggedIn();
+  const ids = Array.isArray(profileIds) ? profileIds.filter(Boolean) : [];
+  if (!ids.length) {
+    throw new Error('请选择要彻底删除的档案');
+  }
+
+  const result = await callFunction('purgeDeletedProfiles', {
+    profileIds: ids,
+    userEmail: user.email || ''
+  });
+  return unwrapResult(result, '彻底删除档案失败');
+}
+
+module.exports = {
+  getCloudProfiles,
+  getDeletedCloudProfiles,
+  uploadProfile,
+  downloadProfile,
+  deleteCloudProfiles,
+  restoreDeletedProfiles,
+  purgeDeletedProfiles
+};

@@ -10,6 +10,33 @@ function getTotalScore(subjects = []) {
   return subjects.reduce((sum, item) => sum + (Number(item.score) || 0), 0);
 }
 
+function getManualTotalScore(exam) {
+  if (!exam || exam.manualTotalScore === '' || exam.manualTotalScore === null || exam.manualTotalScore === undefined) {
+    return null;
+  }
+  const value = Number(exam.manualTotalScore);
+  return Number.isNaN(value) ? null : value;
+}
+
+function getDisplayTotalScore(exam) {
+  const manual = getManualTotalScore(exam);
+  if (manual !== null) {
+    return manual;
+  }
+  return getTotalScore((exam && exam.subjects) || []);
+}
+
+function hasManualTotalMismatch(exam) {
+  if (!exam || !exam.subjects || exam.subjects.length === 0) {
+    return false;
+  }
+  const manual = getManualTotalScore(exam);
+  if (manual === null) {
+    return false;
+  }
+  return manual !== getTotalScore(exam.subjects);
+}
+
 function getTotalFullScore(subjects = []) {
   return subjects.reduce((sum, item) => sum + (Number(item.fullScore) || 0), 0);
 }
@@ -70,6 +97,9 @@ module.exports = {
   compareExamDateAsc,
   compareExamDateDesc,
   getTotalScore,
+  getManualTotalScore,
+  getDisplayTotalScore,
+  hasManualTotalMismatch,
   getTotalFullScore,
   toPercent,
   getScoreClass,

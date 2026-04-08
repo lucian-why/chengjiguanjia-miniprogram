@@ -12,17 +12,17 @@ function createExamModule(page) {
   function selectExam(e) {
     const id = e.currentTarget.dataset.id;
     if (page.data.currentExamId === id) {
-      page.setData({ currentExamId: '', showDetailPanel: false });
+      page.setData({ currentExamId: '', showDetailPanel: false, isEditingTotalScore: false, editingTotalScore: '' });
       page._refreshCurrentExam();
       return;
     }
-    page.setData({ currentExamId: id, showDetailPanel: true });
+    page.setData({ currentExamId: id, showDetailPanel: true, isEditingTotalScore: false, editingTotalScore: '' });
     page._refreshCurrentExam();
     page._refreshAnalysis();
   }
 
   function closeDetailPanel() {
-    page.setData({ showDetailPanel: false, currentExamId: '', currentExam: null, showScoreView: false });
+    page.setData({ showDetailPanel: false, currentExamId: '', currentExam: null, showScoreView: false, isEditingTotalScore: false, editingTotalScore: '' });
   }
 
   function _refreshCurrentExam() {
@@ -36,6 +36,92 @@ function createExamModule(page) {
       currentExam: exam,
       showScoreView: page.data.showScoreView || false,
       showDetailPanel: page.data.showDetailPanel || false
+    });
+  }
+
+  function startEditTotalScore() {
+    const exam = page.data.currentExam;
+    if (!exam) return;
+    page.setData({
+      isEditingTotalScore: true,
+      editingTotalScore: String(exam.totalScore || 0)
+    });
+  }
+
+  function onTotalScoreInput(e) {
+    page.setData({ editingTotalScore: e.detail.value });
+  }
+
+  function prepareCancelInlineTotalScore() {
+    page._skipInlineTotalScoreSave = true;
+  }
+
+  function cancelInlineTotalScore() {
+    page._skipInlineTotalScoreSave = false;
+    page.setData({ isEditingTotalScore: false, editingTotalScore: '' });
+  }
+
+  function saveInlineTotalScore() {
+    if (!page.data.isEditingTotalScore) return;
+    if (page._skipInlineTotalScoreSave) {
+      page._skipInlineTotalScoreSave = false;
+      return;
+    }
+
+    const exam = page.data.currentExam;
+    if (!exam) {
+      cancelInlineTotalScore();
+      return;
+    }
+
+    const rawValue = String(page.data.editingTotalScore || '').trim();
+    const allExams = storage.getExamsAll();
+    const index = allExams.findIndex(item => item.id === exam.id);
+    if (index === -1) {
+      cancelInlineTotalScore();
+      return;
+    }
+
+    if (!rawValue) {
+      delete allExams[index].manualTotalScore;
+    } else {
+      const total = Number(rawValue);
+      if (Number.isNaN(total)) {
+        wx.showToast({ title: '请输入有效总分', icon: 'none' });
+        return;
+      }
+      allExams[index].manualTotalScore = total;
+    }
+
+    page.setData({ isEditingTotalScore: false, editingTotalScore: '' });
+    storage.saveExamsAll(allExams);
+    page._saveAndReload();
+    wx.showToast({ title: '总分已更新', icon: 'success' });
+  }
+
+  function confirmRestoreAutoTotalScore() {
+    const exam = page.data.currentExam;
+    if (!exam || !exam.totalScoreMismatch) return;
+
+    page.setData({
+      showConfirmModal: true,
+      confirmIcon: '!',
+      confirmIconType: 'danger',
+      confirmTitle: '恢复自动总分',
+      confirmMessage: '确定按各科成绩重新计算总分吗？当前手动修改的总分将被清除。',
+      confirmOkText: '恢复',
+      confirmOkClass: 'btn-danger',
+      confirmShowCancel: true,
+      _confirmCallback: () => {
+        const allExams = storage.getExamsAll();
+        const index = allExams.findIndex(item => item.id === exam.id);
+        if (index === -1) return;
+        delete allExams[index].manualTotalScore;
+        storage.saveExamsAll(allExams);
+        page.setData({ isEditingTotalScore: false, editingTotalScore: '' });
+        page._saveAndReload();
+        wx.showToast({ title: '已恢复自动总分', icon: 'success' });
+      }
     });
   }
 
@@ -208,6 +294,12 @@ function createExamModule(page) {
     selectExam,
     closeDetailPanel,
     _refreshCurrentExam,
+    startEditTotalScore,
+    onTotalScoreInput,
+    prepareCancelInlineTotalScore,
+    cancelInlineTotalScore,
+    saveInlineTotalScore,
+    confirmRestoreAutoTotalScore,
     openExamModal,
     closeExamModal,
     onExamFormInput,

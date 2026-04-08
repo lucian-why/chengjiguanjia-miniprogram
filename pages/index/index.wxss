@@ -122,6 +122,42 @@ view, text, navigator, image {
   padding: 20rpx 0 6rpx;
 }
 
+.recycle-bin-sheet {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.profile-sheet-check {
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 999rpx;
+  border: 2rpx solid rgba(124, 169, 201, 0.26);
+  color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 24rpx;
+}
+
+.profile-sheet-check.is-selected {
+  background: linear-gradient(135deg, #7ca9c9, #69b6a6);
+  border-color: transparent;
+  color: #fff;
+}
+
+.recycle-bin-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.recycle-danger {
+  color: #fff;
+  background: #d97b7b;
+  border-color: #d97b7b;
+}
+
 /* ===== 主内容区域（支持滑动切换）===== */
 .main-content {
   position: relative;
@@ -238,6 +274,10 @@ view, text, navigator, image {
   font-size: 22rpx;
   color: #8b7666;
   margin-top: 8rpx;
+}
+
+.exam-total-meta {
+  margin-left: 10rpx;
 }
 
 .exam-actions {
@@ -505,6 +545,69 @@ view, text, navigator, image {
   font-size: 30rpx;
   font-weight: 600;
   color: var(--accent-warm);
+}
+
+.detail-panel-score.editable {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(232, 168, 124, 0.14);
+}
+
+.detail-total-editor {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.detail-total-editor.editing {
+  gap: 12rpx;
+}
+
+.detail-total-input {
+  min-width: 140rpx;
+  height: 58rpx;
+  padding: 0 18rpx;
+  border-radius: 18rpx;
+  background: #fff9f1;
+  border: 1rpx solid rgba(232, 168, 124, 0.38);
+  font-size: 28rpx;
+  color: var(--accent-warm);
+  box-sizing: border-box;
+}
+
+.detail-total-cancel {
+  font-size: 22rpx;
+  color: #8b7666;
+  padding: 8rpx 12rpx;
+}
+
+.score-view-total-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.total-score-alert,
+.total-score-alert-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 999rpx;
+  background: #ffeded;
+  color: #df4e4e;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.total-score-alert-inline {
+  width: 22rpx;
+  height: 22rpx;
+  font-size: 18rpx;
+  vertical-align: middle;
 }
 
 .detail-panel-body {
@@ -1165,6 +1268,130 @@ view, text, navigator, image {
   background: var(--accent-green);
   color: #fff;
   border-color: var(--accent-green);
+}
+
+.setting-btn.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.auth-settings-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.auth-settings-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-settings-main.is-clickable {
+  position: relative;
+}
+
+.auth-settings-hint {
+  margin-bottom: 8rpx;
+  font-size: 20rpx;
+  color: var(--accent-blue);
+  letter-spacing: 0.08em;
+}
+
+.auth-settings-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+}
+
+.auth-settings-desc {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.auth-settings-actions {
+  flex-shrink: 0;
+}
+
+.auth-modal {
+  max-width: 680rpx;
+}
+
+.login-inline-row {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+}
+
+.login-inline-input {
+  flex: 1;
+}
+
+.login-inline-btn {
+  min-width: 180rpx;
+  text-align: center;
+}
+
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field-input {
+  padding-right: 108rpx;
+}
+
+.password-toggle-text {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24rpx;
+  color: var(--accent-blue);
+}
+
+.auth-status {
+  margin-top: 8rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+}
+
+.auth-status.info {
+  background: rgba(124, 169, 201, 0.12);
+  color: #53789b;
+}
+
+.auth-status.success {
+  background: rgba(124, 185, 139, 0.14);
+  color: #4c8760;
+}
+
+.auth-status.error {
+  background: rgba(232, 138, 138, 0.14);
+  color: #c35d5d;
+}
+
+.auth-status.pending {
+  background: rgba(232, 168, 124, 0.14);
+  color: #b06d45;
+}
+
+.auth-mode-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18rpx 24rpx;
+  margin-top: 20rpx;
+}
+
+.auth-mode-link {
+  font-size: 24rpx;
+  color: var(--accent-blue);
 }
 
 /* ===== 连续创建提示条 ===== */

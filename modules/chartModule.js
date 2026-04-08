@@ -41,7 +41,7 @@ function createChartModule(page) {
       return {
         id: ex.id,
         name: ex.name,
-        totalScore: fmt.getTotalScore(ex.subjects),
+        totalScore: fmt.getDisplayTotalScore(ex),
         isCurrent: ex.id === currentExamId,
         selected: false
       };
@@ -90,7 +90,7 @@ function createChartModule(page) {
             return { label: ex.name, value: sub ? sub.score : null };
           }).filter(function(p) { return p.value !== null; });
         } else {
-          points = exams.map(function(ex) { return { label: ex.name, value: fmt.getTotalScore(ex.subjects) }; });
+          points = exams.map(function(ex) { return { label: ex.name, value: fmt.getDisplayTotalScore(ex) }; });
         }
       } else {
         yReverse = true;
@@ -364,7 +364,7 @@ function createChartModule(page) {
             return { label: ex.name, value: sub ? sub.score : null };
           }).filter(function(p) { return p.value !== null; });
         } else {
-          points = exams.map(function(ex) { return { label: ex.name, value: fmt.getTotalScore(ex.subjects) }; });
+          points = exams.map(function(ex) { return { label: ex.name, value: fmt.getDisplayTotalScore(ex) }; });
         }
       }
 

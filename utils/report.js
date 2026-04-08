@@ -1,5 +1,5 @@
 const { roundRect } = require('./chart');
-const { getTotalScore, getTotalFullScore, toPercent } = require('./format');
+const { getTotalScore, getDisplayTotalScore, getTotalFullScore, toPercent } = require('./format');
 
 function fillLinearHeader(ctx, x, y, width, height, startColor, endColor) {
   const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
@@ -29,7 +29,7 @@ function drawText(ctx, text, x, y, options = {}) {
 function drawExamReport(ctx, payload) {
   const { exam, profileName, width } = payload;
   const subjects = exam.subjects || [];
-  const totalScore = getTotalScore(subjects);
+  const totalScore = getDisplayTotalScore(exam);
   const totalFull = getTotalFullScore(subjects);
   const avgPct = toPercent(totalScore, totalFull, 1);
   const contentHeight = 260 + subjects.length * 62 + (exam.totalClassRank || exam.totalGradeRank ? 76 : 0);
@@ -43,7 +43,7 @@ function drawExamReport(ctx, payload) {
 
   roundRect(ctx, 12, 12, width - 24, height - 24, 18, '#ffffff');
   fillLinearHeader(ctx, 12, 12, width - 24, 132, '#667eea', '#764ba2');
-  drawText(ctx, '成绩管家', 30, 44, { size: 12, color: 'rgba(255,255,255,0.82)' });
+  drawText(ctx, '成绩雷达', 30, 44, { size: 12, color: 'rgba(255,255,255,0.82)' });
   drawText(ctx, exam.name, 30, 82, { size: 24, color: '#ffffff', bold: true });
   if (profileName) {
     drawText(ctx, profileName, 30, 108, { size: 13, color: 'rgba(255,255,255,0.88)' });
@@ -105,7 +105,7 @@ function drawExamReport(ctx, payload) {
   if (exam.startDate) {
     drawText(ctx, `考试日期 ${exam.startDate}${exam.endDate && exam.endDate !== exam.startDate ? ` ~ ${exam.endDate}` : ''}`, 28, height - 38, { size: 11, color: '#999999' });
   }
-  drawText(ctx, '由「成绩管家」生成 · 记录每一步进步', width / 2, height - 16, { size: 10, color: '#cccccc', align: 'center' });
+  drawText(ctx, '由「成绩雷达」生成 · 记录每一步进步', width / 2, height - 16, { size: 10, color: '#cccccc', align: 'center' });
 
   return height;
 }
@@ -127,7 +127,7 @@ function drawProfileReport(ctx, payload) {
   const { profile, exams, width } = payload;
   const sorted = [...exams].sort((a, b) => new Date(a.startDate || a.createdAt || 0) - new Date(b.startDate || b.createdAt || 0));
   const latest = sorted[sorted.length - 1] || { subjects: [] };
-  const latestTotal = getTotalScore(latest.subjects || []);
+  const latestTotal = getDisplayTotalScore(latest);
   const latestFull = getTotalFullScore(latest.subjects || []);
   const latestPct = toPercent(latestTotal, latestFull, 1);
   const subjectNames = Array.from(new Set(sorted.flatMap((exam) => (exam.subjects || []).map((subject) => subject.name))));
@@ -141,7 +141,7 @@ function drawProfileReport(ctx, payload) {
 
   roundRect(ctx, 12, 12, width - 24, height - 24, 18, '#ffffff');
   fillLinearHeader(ctx, 12, 12, width - 24, 132, '#11998e', '#38ef7d');
-  drawText(ctx, '成绩管家 · 档案报告', 30, 44, { size: 12, color: 'rgba(255,255,255,0.82)' });
+  drawText(ctx, '成绩雷达 · 档案报告', 30, 44, { size: 12, color: 'rgba(255,255,255,0.82)' });
   drawText(ctx, profile.name, 30, 82, { size: 24, color: '#ffffff', bold: true });
   drawText(ctx, `共 ${sorted.length} 次考试 · ${subjectNames.length} 个科目`, 30, 108, { size: 13, color: 'rgba(255,255,255,0.88)' });
 
@@ -164,7 +164,7 @@ function drawProfileReport(ctx, payload) {
   const chartBottom = 408;
   const columnGap = (width - 70) / Math.max(recent.length, 1);
   recent.forEach((exam, index) => {
-    const total = getTotalScore(exam.subjects || []);
+    const total = getDisplayTotalScore(exam);
     const full = getTotalFullScore(exam.subjects || []);
     const pct = Number(toPercent(total, full, 1)) || 0;
     const barHeight = Math.max(12, pct * 0.82);
