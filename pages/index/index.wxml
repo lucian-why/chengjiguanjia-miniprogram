@@ -142,7 +142,7 @@ module.exports.getRateClass = function(score) {
 
     <!-- AI 分析卡片 -->
     <block wx:if="{{analysisMode !== 'radar'}}">
-      <view class="ai-analysis-card" wx:if="{{aiAnalysisHtml || aiAnalysisStatus}}">
+      <view class="ai-analysis-card">
         <view class="ai-analysis-card__header" wx:if="{{aiAnalysisStatus === 'login'}}">
           <view>
             <view class="ai-analysis-card__eyebrow">AI 分析报告</view>
