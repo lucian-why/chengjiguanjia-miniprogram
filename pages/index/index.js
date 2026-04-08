@@ -144,11 +144,17 @@ Page({
 
   // ======================== AI 分析 ========================
   async _refreshAnalysis({ force } = {}) {
+    console.log('[AI] _refreshAnalysis start, force:', force);
     const profileId = this._getActiveProfileId();
-    if (!profileId || profileId === '_none') return;
+    if (!profileId || profileId === '_none') {
+      console.log('[AI] 无有效profileId, 退出');
+      return;
+    }
+    console.log('[AI] profileId:', profileId);
 
     try {
       this.setData({ aiAnalysisBusy: true });
+      wx.showToast({ title: '正在分析...', icon: 'loading', duration: 2000 });
       const result = await ai.refreshAIAnalysis({
         force: !!force,
         getExams: () => storage.getExams(profileId),
@@ -156,13 +162,19 @@ Page({
           const p = this.data.profiles[this.data.activeProfileIndex];
           return p ? p.name : '';
         },
-        isLogin: () => !!auth.getCurrentUser(),
+        isLogin: () => {
+          console.log('[AI] isLogin check, user:', auth.getCurrentUser());
+          return !!auth.getCurrentUser();
+        },
         onStatusChange: (status) => {
+          console.log('[AI] status change:', status);
           if (this.data.aiAnalysisStatus !== status) {
             this.setData({ aiAnalysisStatus: status });
           }
         }
       });
+
+      console.log('[AI] result.status:', result.status);
 
       if (result.status === 'cancelled') return;
 
@@ -184,6 +196,8 @@ Page({
   },
 
   onAIAction() {
+    console.log('[AI] onAIAction triggered, current status:', this.data.aiAnalysisStatus);
+    wx.showToast({ title: 'AI分析已触发', icon: 'none', duration: 1000 });
     const s = this.data.aiAnalysisStatus;
     if (s === 'login') {
       this.openAuthModal();
