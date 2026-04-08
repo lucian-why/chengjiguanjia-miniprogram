@@ -129,28 +129,14 @@ function normalizeParsedSubjects(subjects = []) {
  *   - meta:   { source, fallbackReason } 仅 success 时有值
  */
 async function refreshAIAnalysis({ force = false } = {}) {
-  // 1️⃣ 检查登录
-  const user = await getCurrentUser();
-  if (!user) {
-    return {
-      status: 'login',
-      html: renderLoginGuide(),
-      meta: null
-    };
-  }
-
-  // 2️⃣ 检查数据量
+  // 1️⃣ 获取数据（前置检查已在 index.js 完成）
   const profileId = getActiveProfileId();
-  const exams = getExams(profileId, true); // excludeHidden=true
+  const exams = getExams(profileId, true);
   if (exams.length < 2) {
-    return {
-      status: 'notEnough',
-      html: renderEmptyCard(TEXT.analysisNotEnoughTitle, TEXT.analysisNotEnoughDesc),
-      meta: null
-    };
+    return { status: 'notEnough', html: '', meta: null };
   }
 
-  // 3️⃣ 缓存命中？
+  // 2️⃣ 缓存命中？
   const payload = buildAnalysisPayload(exams);
   const cacheKey = JSON.stringify(payload);
   if (!force && cacheKey === _lastAnalysisKey && _lastAnalysisText) {
@@ -161,7 +147,7 @@ async function refreshAIAnalysis({ force = false } = {}) {
     };
   }
 
-  // 4️⃣ 调用云函数
+  // 3️⃣ 调用云函数
   const requestToken = ++_analysisRequestToken;
 
   try {
@@ -198,7 +184,7 @@ async function refreshAIAnalysis({ force = false } = {}) {
     }
     return {
       status: 'error',
-      html: renderError(error?.message || TEXT.analysisError),
+      html: '',
       meta: null
     };
   }

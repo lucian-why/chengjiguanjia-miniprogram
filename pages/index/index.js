@@ -144,67 +144,50 @@ Page({
 
   // ======================== AI 分析 ========================
   async _refreshAnalysis({ force } = {}) {
-    console.log('[AI] _refreshAnalysis start, force:', force);
     const profileId = this._getActiveProfileId();
-    if (!profileId || profileId === '_none') {
-      console.log('[AI] 无有效profileId, 退出');
+    if (!profileId || profileId === '_none') return;
+
+    // 前置检查1：登录状态
+    if (!auth.getCurrentUser()) {
+      this.setData({ aiAnalysisStatus: 'login', aiAnalysisBusy: false });
       return;
     }
-    console.log('[AI] profileId:', profileId);
+
+    // 前置检查2：考试数据量
+    const exams = storage.getExams(profileId);
+    if (exams.length < 2) {
+      this.setData({ aiAnalysisStatus: 'notEnough', aiAnalysisBusy: false });
+      return;
+    }
+
+    // 设置加载状态
+    this.setData({ aiAnalysisStatus: 'loading', aiAnalysisBusy: true });
 
     try {
-      this.setData({ aiAnalysisBusy: true });
-      wx.showToast({ title: '正在分析...', icon: 'loading', duration: 2000 });
-      const result = await ai.refreshAIAnalysis({
-        force: !!force,
-        getExams: () => storage.getExams(profileId),
-        getActiveProfileName: () => {
-          const p = this.data.profiles[this.data.activeProfileIndex];
-          return p ? p.name : '';
-        },
-        isLogin: () => {
-          console.log('[AI] isLogin check, user:', auth.getCurrentUser());
-          return !!auth.getCurrentUser();
-        },
-        onStatusChange: (status) => {
-          console.log('[AI] status change:', status);
-          if (this.data.aiAnalysisStatus !== status) {
-            this.setData({ aiAnalysisStatus: status });
-          }
-        }
-      });
+      const result = await ai.refreshAIAnalysis({ force: !!force });
 
-      console.log('[AI] result.status:', result.status);
-
+      // 请求被覆盖，静默丢弃
       if (result.status === 'cancelled') return;
 
+      // 成功：设置 HTML 内容
       if (result.status === 'success' && result.html) {
         this.setData({ aiAnalysisHtml: result.html, aiAnalysisStatus: 'success' });
-      } else if (result.status === 'login' || result.status === 'notEnough' || result.status === 'error') {
-        this.setData({
-          aiAnalysisHtml: ai.getAnalysisLoadingHTML(result),
-          aiAnalysisStatus: result.status
-        });
       } else {
-        this.setData({ aiAnalysisHtml: '', aiAnalysisStatus: result.status || '' });
+        // 其他状态（login/notEnough/error 回退等）
+        this.setData({ aiAnalysisStatus: result.status || 'error' });
       }
     } catch (err) {
       console.error('[AI] 分析异常:', err);
+      this.setData({ aiAnalysisStatus: 'error' });
     } finally {
       this.setData({ aiAnalysisBusy: false });
     }
   },
 
   onAIAction() {
-    console.log('[AI] onAIAction triggered, current status:', this.data.aiAnalysisStatus);
-    wx.showToast({ title: 'AI分析已触发', icon: 'none', duration: 1000 });
     const s = this.data.aiAnalysisStatus;
     if (s === 'login') {
       this.openAuthModal();
-      return;
-    }
-    if (s === 'error') {
-      this._refreshAnalysis({ force: true });
       return;
     }
     this._refreshAnalysis({ force: true });
