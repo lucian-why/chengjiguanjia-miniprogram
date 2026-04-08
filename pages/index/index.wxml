@@ -201,7 +201,7 @@ module.exports.getRateClass = function(score) {
             </view>
             <view class="profile-item-meta">{{item.examCount}} 场考试</view>
           </view>
-          <view class="profile-item-actions" catchtap="">
+          <view class="profile-item-actions" catchtap="noop">
             <view class="profile-share-btn" bindtap="openShareProfileReport" data-index="{{index}}">报告</view>
             <view class="profile-action-btn rename-btn" bindtap="renameProfile" data-index="{{index}}">
               <text class="icon-pencil">✏</text>
@@ -252,7 +252,7 @@ module.exports.getRateClass = function(score) {
 </view>
 
 <view class="profile-sheet-mask" wx:if="{{showProfilePicker}}" bindtap="closeProfilePicker">
-  <view class="profile-sheet" catchtap="">
+  <view class="profile-sheet" catchtap="noop">
     <view class="profile-sheet-title">选择档案</view>
     <view class="profile-sheet-subtitle">切换后会刷新当前考试列表。</view>
     <view class="profile-sheet-list">
@@ -368,7 +368,7 @@ module.exports.getRateClass = function(score) {
 </view>
 
 <view class="modal-mask" wx:if="{{showExamModal}}">
-  <view class="modal" catchtap="" catchtouchmove="">
+  <view class="modal" catchtap="noop" catchtouchmove="">
     <view class="modal-header">
       <view class="modal-title">{{editExamId ? '编辑考试' : '新建考试'}}</view>
       <view class="modal-close" bindtap="closeExamModal">×</view>
@@ -429,7 +429,7 @@ module.exports.getRateClass = function(score) {
 </view>
 
 <view class="modal-mask" wx:if="{{showScoreModal}}">
-  <view class="modal" catchtap="" catchtouchmove="">
+  <view class="modal" catchtap="noop" catchtouchmove="">
     <view class="modal-header">
       <view class="modal-title">{{editSubjectIndex !== null ? '编辑成绩' : '添加成绩'}}</view>
       <view class="modal-close" bindtap="closeScoreModal">×</view>
@@ -475,7 +475,7 @@ module.exports.getRateClass = function(score) {
 </view>
 
 <view class="modal-mask" wx:if="{{showConfirmModal}}" bindtap="closeConfirmModal">
-  <view class="modal confirm-modal" catchtap="">
+  <view class="modal confirm-modal" catchtap="noop">
     <view class="confirm-icon-wrap {{confirmIconType}}">
       <text>{{confirmIcon}}</text>
     </view>
@@ -489,7 +489,7 @@ module.exports.getRateClass = function(score) {
 </view>
 
 <view class="modal-mask" wx:if="{{showReportModal}}" bindtap="closeReportModal">
-  <view class="modal report-modal" catchtap="">
+  <view class="modal report-modal" catchtap="noop">
     <view class="modal-header">
       <view class="modal-title">报告预览</view>
       <view class="modal-close" bindtap="closeReportModal">×</view>
@@ -510,7 +510,7 @@ module.exports.getRateClass = function(score) {
 </view>
 
 <view class="modal-mask" wx:if="{{showRenameModal}}" bindtap="closeRenameModal">
-  <view class="modal" catchtap="" catchtouchmove="">
+  <view class="modal" catchtap="noop" catchtouchmove="">
     <view class="modal-header">
       <view class="modal-title">重命名档案</view>
       <view class="modal-close" bindtap="closeRenameModal">×</view>
@@ -528,7 +528,7 @@ module.exports.getRateClass = function(score) {
 </view>
 
 <view class="modal-mask" wx:if="{{showChartZoom}}" bindtap="closeChartZoom">
-  <view class="modal chart-zoom-modal" catchtap="" catchtouchmove="">
+  <view class="modal chart-zoom-modal" catchtap="noop" catchtouchmove="">
     <view class="modal-header">
       <view class="modal-title">{{chartZoomTitle}}</view>
       <view class="modal-close" bindtap="closeChartZoom">×</view>
@@ -606,7 +606,7 @@ module.exports.getRateClass = function(score) {
 
 <!-- 登录弹窗 -->
 <view class="modal-mask" wx:if="{{showAuthModal}}" bindtap="closeAuthModal">
-  <view class="modal auth-modal" catchtap="" catchtouchmove="">
+  <view class="modal auth-modal" catchtap="noop" catchtouchmove="">
     <view class="modal-header">
       <view class="modal-title">{{authTitle}}</view>
       <view class="modal-close" bindtap="closeAuthModal">×</view>
@@ -687,7 +687,7 @@ module.exports.getRateClass = function(score) {
 
 <!-- 修改昵称弹窗 -->
 <view class="modal-mask" wx:if="{{showNicknameModal}}" bindtap="closeNicknameModal">
-  <view class="modal" catchtap="" catchtouchmove="">
+  <view class="modal" catchtap="noop" catchtouchmove="">
     <view class="modal-header">
       <view class="modal-title">✏️ 修改昵称</view>
       <view class="modal-close" bindtap="closeNicknameModal">×</view>
@@ -706,7 +706,7 @@ module.exports.getRateClass = function(score) {
 
 <!-- 回收站弹窗 -->
 <view class="modal-mask" wx:if="{{showRecycleBinPicker}}" bindtap="closeRecycleBin">
-  <view class="modal recycle-modal" catchtap="" catchtouchmove="">
+  <view class="modal recycle-modal" catchtap="noop" catchtouchmove="">
     <view class="modal-header">
       <view class="modal-title">🗑️ 回收站</view>
       <view class="modal-close" bindtap="closeRecycleBin">×</view>
