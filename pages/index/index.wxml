@@ -154,6 +154,7 @@ module.exports.getRateClass = function(score) {
         <view class="ai-analysis-card__loading" wx:elif="{{aiAnalysisStatus === 'loading'}}">
           <view class="ai-analysis-card__spinner"></view>
           <text>正在生成 AI 分析...</text>
+          <view class="ai-analysis-card__refresh" style="margin-top:16rpx;font-size:24rpx;color:#999" bindtap="onAIAction">重新开始</view>
         </view>
 
         <view class="ai-analysis-card__empty" wx:elif="{{aiAnalysisStatus === 'notEnough'}}">

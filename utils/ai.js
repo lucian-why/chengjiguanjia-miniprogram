@@ -43,7 +43,8 @@ const TEXT = {
 
 const MINI_PROGRAM_AI_PROVIDER = 'hunyuan-exp';
 const MINI_PROGRAM_AI_MODEL = 'hunyuan-2.0-instruct-20251111';
-const MINI_PROGRAM_AI_TIMEOUT = 12000;
+const MINI_PROGRAM_AI_TIMEOUT = 15000;  // 原生 AI 超时 15 秒
+const CLOUD_FUNCTION_TIMEOUT = 25000;   // 云函数超时 25 秒
 
 let _analysisRequestToken = 0;
 let _lastAnalysisKey = '';
@@ -144,22 +145,28 @@ function withTimeout(promise, timeout, label) {
  */
 async function generateTextWithMiniProgramAI(messages, options = {}) {
   if (!isMiniProgramAIAvailable()) {
+    console.warn('[AI] wx.cloud.extend.AI 不可用');
     throw new Error('wx.cloud.extend.AI is unavailable');
   }
 
   const model = wx.cloud.extend.AI.createModel(MINI_PROGRAM_AI_PROVIDER);
-  const text = await withTimeout(model.generateText({
+  const requestParams = {
     data: {
       model: options.model || MINI_PROGRAM_AI_MODEL,
       messages,
       temperature: options.temperature ?? 0.45
     }
-  }), options.timeout || MINI_PROGRAM_AI_TIMEOUT, 'mini-program-ai');
+  };
+
+  console.log('[AI] 调用小程序原生 AI, model:', requestParams.data.model, 'timeout:', options.timeout || MINI_PROGRAM_AI_TIMEOUT);
+
+  const text = await withTimeout(model.generateText(requestParams), options.timeout || MINI_PROGRAM_AI_TIMEOUT, 'mini-program-ai');
 
   if (!String(text || '').trim()) {
     throw new Error('Mini Program AI returned empty content');
   }
 
+  console.log('[AI] 小程序原生 AI 成功, 返回长度:', String(text).length);
   return {
     text: String(text).trim(),
     source: 'miniprogram-ai'
@@ -226,10 +233,11 @@ async function refreshAIAnalysis({ force = false } = {}) {
       aiFallbackReason = directError.message || '小程序原生 AI 调用失败';
 
       try {
+        console.log('[AI] 尝试云函数 ai_service, timeout:', CLOUD_FUNCTION_TIMEOUT);
         const result = await callFunction('ai_service', {
           action: 'analyze',
           data: { exams: payload }
-        }, { timeout: 35000 });
+        }, { timeout: CLOUD_FUNCTION_TIMEOUT });
 
         if (requestToken !== _analysisRequestToken) {
           return { status: 'cancelled', html: '', meta: null };

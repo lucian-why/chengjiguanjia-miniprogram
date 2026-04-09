@@ -166,15 +166,34 @@ Page({
       return;
     }
 
+    // 防止重复调用：如果正在分析且非强制刷新，跳过
+    if (this.data.aiAnalysisBusy && !force) {
+      console.log('[AI] 已在分析中，跳过自动刷新');
+      return;
+    }
+
     // 设置加载状态
+    console.log('[AI] 开始分析, force:', force);
     this.setData({ aiAnalysisStatus: 'loading', aiAnalysisBusy: true });
+
+    // 安全网：最多 45 秒后强制恢复，防止永远卡在 loading
+    const safetyTimer = setTimeout(() => {
+      if (this.data.aiAnalysisBusy) {
+        console.warn('[AI] 安全网触发：45s 超时强制恢复');
+        this.setData({ aiAnalysisStatus: 'error', aiAnalysisBusy: false });
+      }
+    }, 45000);
 
     try {
       const result = await ai.refreshAIAnalysis({ force: !!force });
 
       // 请求被覆盖，恢复到之前的有效状态
       if (result.status === 'cancelled') {
-        this.setData({ aiAnalysisStatus: this.data.aiAnalysisHtml ? 'success' : 'default' });
+        this.setData({
+          aiAnalysisStatus: this.data.aiAnalysisHtml ? 'success' : 'default',
+          aiAnalysisBusy: false
+        });
+        clearTimeout(safetyTimer);
         return;
       }
 
@@ -194,22 +213,27 @@ Page({
       console.error('[AI] 分析异常:', err);
       this.setData({ aiAnalysisStatus: 'error' });
     } finally {
+      clearTimeout(safetyTimer);
       this.setData({ aiAnalysisBusy: false });
     }
   },
 
   onAIAction() {
     const s = this.data.aiAnalysisStatus;
-    console.log('[AI] onAIAction clicked, status:', s);
+    console.log('[AI] onAIAction clicked, status:', s, 'busy:', this.data.aiAnalysisBusy);
     if (s === 'login') {
       this.openAuthModal();
       return;
     }
-    if (this.data.aiAnalysisBusy) {
+    // 如果卡在 loading 状态超过一定时间，允许用户再次点击强制重新开始
+    if (this.data.aiAnalysisBusy && s !== 'loading') {
       console.log('[AI] 已在分析中，忽略重复点击');
       return;
     }
-    this._refreshAnalysis({ force: true });
+    // 强制刷新：重置 busy 状态后再调用
+    this.setData({ aiAnalysisBusy: false }, () => {
+      this._refreshAnalysis({ force: true });
+    });
   },
 
   _saveAndReload() {
