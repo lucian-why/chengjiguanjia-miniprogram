@@ -189,8 +189,8 @@ Page({
   },
 
   onAIAction() {
-    console.log('[AI] onAIAction clicked, status:', this.data.aiAnalysisStatus);
     const s = this.data.aiAnalysisStatus;
+    console.log('[AI] onAIAction clicked, status:', s);
     if (s === 'login') {
       this.openAuthModal();
       return;
@@ -612,6 +612,7 @@ Page({
 
       this._syncAuthState();
       await autoSync.syncAfterLogin();
+      this._refreshAnalysis(); // 登录后重新检查 AI 分析状态
       this._setAuthStatus(mode === 'resetpwd' ? '密码已重置' : '操作成功', 'success');
       wx.showToast({ title: mode === 'resetpwd' ? '重置成功' : '登录成功', icon: 'success' });
       setTimeout(() => this.closeAuthModal(), 500);
@@ -626,6 +627,7 @@ Page({
     auth.signOut();
     autoSync.handleLogoutAutoSync();
     this._syncAuthState();
+    this.setData({ aiAnalysisStatus: 'login', aiAnalysisHtml: '', aiAnalysisBusy: false });
     this._setSyncStatus('', '');
     wx.showToast({ title: '已退出登录', icon: 'none' });
   },
