@@ -2305,20 +2305,120 @@ view, text, navigator, image {
   opacity: 0.85;
 }
 
+/* ===== AI 分析报告正文（rich-text 渲染区域） ===== */
 .ai-analysis-card__body {
-  padding: 24rpx 32rpx 32rpx;
+  padding: 28rpx 32rpx 36rpx;
   color: var(--text-primary);
   font-size: 28rpx;
-  line-height: 1.8;
+  line-height: 1.85;
 }
 
-.ai-analysis-card__body p + p {
-  margin-top: 16rpx;
+/* 段落 */
+.ai-analysis-card__body p {
+  margin-bottom: 20rpx;
+  text-align: justify;
 }
+.ai-analysis-card__body p:last-child { margin-bottom: 0; }
 
+/* 标题：渐变左竖线 + 层级字号 */
+.ai-analysis-card__body h1,
+.ai-analysis-card__body h2,
+.ai-analysis-card__body h3,
+.ai-analysis-card__body h4 {
+  font-weight: 700;
+  color: #3d5a73;
+  margin: 28rpx 0 16rpx;
+  padding-left: 22rpx;
+  position: relative;
+  line-height: 1.4;
+}
+.ai-analysis-card__body h1 { font-size: 36rpx; }
+.ai-analysis-card__body h2 { font-size: 33rpx; }
+.ai-analysis-card__body h3 { font-size: 30rpx; }
+.ai-analysis-card__body h4 { font-size: 28rpx; color: #5a6f84; }
+
+/* 左竖线装饰 */
+.ai-analysis-card__body h1::before,
+.ai-analysis-card__body h2::before,
+.ai-analysis-card__body h3::before,
+.ai-analysis-card__body h4::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 6rpx; height: 70%;
+  border-radius: 3rpx;
+  background: linear-gradient(180deg, #7ca9c9, #69b6a6);
+}
+.ai-analysis-card__body > h1:first-child,
+.ai-analysis-card__body > h2:first-child,
+.ai-analysis-card__body > h3:first-child,
+.ai-analysis-card__body > h4:first-child { margin-top: 0; }
+
+/* 加粗 */
 .ai-analysis-card__body strong {
-  color: #4b617b;
+  color: #3a556e;
   font-weight: 600;
+}
+
+/* 无序列表：渐变圆点 */
+.ai-analysis-card__body ul {
+  list-style-type: none;
+  padding-left: 12rpx;
+  margin-bottom: 18rpx;
+}
+.ai-analysis-card__body li {
+  position: relative;
+  padding-left: 28rpx;
+  margin-bottom: 14rpx;
+  line-height: 1.75;
+}
+.ai-analysis-card__body ul li::before {
+  content: '';
+  position: absolute;
+  left: 6rpx; top: 17rpx;
+  width: 10rpx; height: 10rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7ca9c9 60%, #8fb7a3 100%);
+}
+.ai-analysis-card__body li:last-child { margin-bottom: 0; }
+
+/* 有序列表：渐变圆形数字 */
+.ai-analysis-card__body ol {
+  list-style-type: none;
+  counter-reset: ai-ol-counter;
+  padding-left: 8rpx;
+  margin-bottom: 18rpx;
+}
+.ai-analysis-card__body ol > li {
+  counter-increment: ai-ol-counter;
+  position: relative;
+  padding-left: 36rpx;
+  margin-bottom: 14rpx;
+  line-height: 1.75;
+}
+.ai-analysis-card__body ol > li::before {
+  content: counter(ai-ol-counter);
+  position: absolute;
+  left: 4rpx; top: 2rpx;
+  width: 26rpx; height: 26rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #7ca9c9, #9b8dc4);
+  color: #fff;
+  font-size: 18rpx;
+  font-weight: 700;
+  text-align: center;
+  line-height: 26rpx;
+  box-shadow: 0 2rpx 8rpx rgba(124, 169, 201, 0.25);
+}
+.ai-analysis-card__body ol > li:last-child { margin-bottom: 0; }
+
+/* 图片 */
+.ai-analysis-card__body img {
+  max-width: 100%;
+  border-radius: 16rpx;
+  margin: 16rpx 0;
+  box-shadow: 0 6rpx 24rpx rgba(95, 158, 199, 0.1);
 }
 
 .ai-analysis-card__notice {

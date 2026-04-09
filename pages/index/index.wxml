@@ -176,7 +176,9 @@ module.exports.getRateClass = function(score) {
             <text>当前显示的是基础分析结果，AI 大模型尚未成功连通。</text>
             <view wx:if="{{aiAnalysisFallbackReason}}" class="ai-analysis-card__notice-detail">{{aiAnalysisFallbackReason}}</view>
           </view>
-          <rich-text nodes="{{aiAnalysisHtml}}"></rich-text>
+          <view class="ai-analysis-card__body">
+        <rich-text nodes="{{aiAnalysisHtml}}"></rich-text>
+      </view>
         </block>
 
         <view class="ai-analysis-card__error" wx:elif="{{aiAnalysisStatus === 'error'}}">
