@@ -50,6 +50,11 @@ async function uploadProfile(profileId) {
     throw new Error('未找到要上传的本地档案');
   }
 
+  // 示例档案不上传云端，避免多设备重复同步
+  if (bundleInfo.bundle?.profile?.isDemo) {
+    return { skipped: true, reason: '示例档案不上传' };
+  }
+
   const result = await callFunction('uploadCloudProfile', {
     profileId: bundleInfo.profileId,
     profileName: bundleInfo.profileName,

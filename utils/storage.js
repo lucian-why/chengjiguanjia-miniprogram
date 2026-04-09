@@ -74,12 +74,17 @@ function getExams(profileId, excludeHidden = false) {
   return exams;
 }
 
-function createProfile(name) {
+const DEMO_PROFILE_ID = 'profile_demo_default';
+
+function createProfile(name, options) {
   const profiles = getProfiles();
-  const id = `profile_${Date.now()}`;
+  const id = options?.fixedId || `profile_${Date.now()}`;
+  const isDemo = !!options?.isDemo;
+  if (profiles.find((p) => p.id === id)) return id;
   profiles.push({
     id,
     name,
+    isDemo,
     createdAt: new Date().toISOString()
   });
   saveProfiles(profiles);
@@ -140,7 +145,7 @@ function migrateProfilesIfNeeded() {
   const exams = getExamsAll();
 
   if (profiles.length === 0) {
-    const defaultId = createProfile('人生档案');
+    const defaultId = createProfile('人生档案', { fixedId: DEMO_PROFILE_ID, isDemo: true });
     if (exams.length > 0) {
       saveExamsAll(
         exams.map((item) => ({
@@ -301,6 +306,11 @@ function applyCloudProfileBundle(cloudBundle) {
   const payload = cloudBundle?.profile_data || cloudBundle?.bundle || cloudBundle;
   if (!payload?.profile) {
     throw new Error('云端档案数据结构无效');
+  }
+
+  // 云端下来的示例档案不合并到本地
+  if (payload.profile.isDemo) {
+    return { skipped: true, reason: '示例档案不合并' };
   }
 
   const localProfiles = getProfiles();
