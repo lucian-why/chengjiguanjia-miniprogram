@@ -2,15 +2,16 @@
  * 成绩雷达 - 小程序端 AI 功能模块
  *
  * 提供两个核心能力：
- *  1. AI 成绩分析 (action: analyze)
- *  2. AI 批量成绩识别/录入 (action: inputParse)
+ *  1. AI 成绩分析（优先使用 wx.cloud.extend.AI 小程序原生 AI）
+ *  2. AI 批量成绩识别/录入
+ *
+ * 调用链路：
+ *  小程序原生 AI（wx.cloud.extend.AI） → 云函数 ai_service → 本地降级分析
  *
  * 依赖：
- *  - utils/cloud.js   → callFunction
+ *  - utils/cloud.js   → callFunction（仅 fallback 用）
  *  - utils/auth.js    → getCurrentUser
  *  - utils/storage.js → getExams, getActiveProfileId
- *
- * 云函数：ai_service（与 Web 端共享同一云函数）
  */
 
 const { callFunction } = require('./cloud');
@@ -40,6 +41,10 @@ const TEXT = {
   batchLoginPrompt: '登录后即可使用 AI 成绩分析和 AI 辅助录入。'
 };
 
+const MINI_PROGRAM_AI_PROVIDER = 'hunyuan-exp';
+const MINI_PROGRAM_AI_MODEL = 'hunyuan-2.0-instruct-20251111';
+const MINI_PROGRAM_AI_TIMEOUT = 12000;
+
 let _analysisRequestToken = 0;
 let _lastAnalysisKey = '';
 let _lastAnalysisText = '';
@@ -47,16 +52,10 @@ let _lastAnalysisMeta = null;
 
 // ==================== 工具函数 ====================
 
-/**
- * 格式化考试日期（取最早可用的日期字段）
- */
 function normalizeExamDate(exam) {
   return exam.startDate || exam.endDate || exam.createdAt || '';
 }
 
-/**
- * 构建发送给云函数的分析载荷（精简、排序）
- */
 function buildAnalysisPayload(exams) {
   return exams
     .map((exam) => ({
@@ -81,7 +80,8 @@ function buildAnalysisPayload(exams) {
 }
 
 /**
- * 格式化 AI 分析文本（**加粗** → <strong>，双换行 → 分段）
+ * 格式化 AI 分析文本为 rich-text 可用的 HTML 片段
+ * **加粗** → <strong>，双换行 → 分段
  */
 function formatAnalysisHtml(text) {
   const escaped = String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -94,9 +94,6 @@ function formatAnalysisHtml(text) {
     .join('');
 }
 
-/**
- * 清洗 AI 返回的科目数据
- */
 function normalizeParsedSubjects(subjects = []) {
   return subjects
     .map((subject) => ({
@@ -116,6 +113,59 @@ function normalizeParsedSubjects(subjects = []) {
     );
 }
 
+// ==================== 小程序原生 AI ====================
+
+function isMiniProgramAIAvailable() {
+  return !!(
+    typeof wx !== 'undefined' &&
+    wx.cloud &&
+    wx.cloud.extend &&
+    wx.cloud.extend.AI &&
+    typeof wx.cloud.extend.AI.createModel === 'function'
+  );
+}
+
+function withTimeout(promise, timeout, label) {
+  let timer = null;
+  return Promise.race([
+    promise.finally(() => {
+      if (timer) clearTimeout(timer);
+    }),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label || 'AI request'} timeout`)), timeout);
+    })
+  ]);
+}
+
+/**
+ * 使用小程序原生 AI 调用大模型
+ * API: wx.cloud.extend.AI.createModel(provider).generateText({ data: { model, messages } })
+ * 返回: Promise<string>（直接返回文本内容）
+ */
+async function generateTextWithMiniProgramAI(messages, options = {}) {
+  if (!isMiniProgramAIAvailable()) {
+    throw new Error('wx.cloud.extend.AI is unavailable');
+  }
+
+  const model = wx.cloud.extend.AI.createModel(MINI_PROGRAM_AI_PROVIDER);
+  const text = await withTimeout(model.generateText({
+    data: {
+      model: options.model || MINI_PROGRAM_AI_MODEL,
+      messages,
+      temperature: options.temperature ?? 0.45
+    }
+  }), options.timeout || MINI_PROGRAM_AI_TIMEOUT, 'mini-program-ai');
+
+  if (!String(text || '').trim()) {
+    throw new Error('Mini Program AI returned empty content');
+  }
+
+  return {
+    text: String(text).trim(),
+    source: 'miniprogram-ai'
+  };
+}
+
 // ==================== API 1: AI 成绩分析 ====================
 
 /**
@@ -124,96 +174,122 @@ function normalizeParsedSubjects(subjects = []) {
  * @param {Object} options
  * @param {boolean} [options.force=false] - 强制刷新（忽略缓存）
  * @returns {Promise<Object>} { status, html, meta }
- *   - status: 'login' | 'notEnough' | 'loading' | 'success' | 'error'
- *   - html:   渲染好的 WXML 友好 HTML 片段
- *   - meta:   { source, fallbackReason } 仅 success 时有值
  */
 async function refreshAIAnalysis({ force = false } = {}) {
-  // 1️⃣ 获取数据（前置检查已在 index.js 完成）
   const profileId = getActiveProfileId();
   const exams = getExams(profileId, true);
   if (exams.length < 2) {
     return { status: 'notEnough', html: '', meta: null };
   }
 
-  // 2️⃣ 缓存命中？
+  // 缓存命中？
   const payload = buildAnalysisPayload(exams);
   const cacheKey = JSON.stringify(payload);
   if (!force && cacheKey === _lastAnalysisKey && _lastAnalysisText) {
     return {
       status: 'success',
-      html: renderSuccess(_lastAnalysisText, _lastAnalysisMeta),
+      html: formatAnalysisHtml(_lastAnalysisText),
       meta: _lastAnalysisMeta
     };
   }
 
-  // 3️⃣ 调用云函数
   const requestToken = ++_analysisRequestToken;
 
   try {
-    const result = await callFunction('ai_service', {
-      action: 'analyze',
-      data: { exams: payload }
-    }, { timeout: 25000 });
+    let aiText = '';
+    let aiSource = '';
+    let aiFallbackReason = '';
 
-    // 如果请求已被后续请求覆盖，丢弃结果
+    // ① 优先使用小程序原生 AI
+    try {
+      const direct = await generateTextWithMiniProgramAI([
+        {
+          role: 'system',
+          content: '你是"成绩雷达"的 AI 学习分析助手。请基于用户提供的多场考试数据，直接输出简洁、具体、鼓励式的学习分析。输出请使用 Markdown，包含这 4 个部分：1. 趋势判断 2. 优势学科 3. 薄弱预警 4. 下一步建议。不要复述原始 JSON。'
+        },
+        {
+          role: 'user',
+          content: [
+            '以下是同一档案下的考试数据，请直接输出分析结论：',
+            JSON.stringify(payload, null, 2)
+          ].join('\n')
+        }
+      ], {
+        temperature: 0.45,
+        timeout: 15000
+      });
+      aiText = direct.text;
+      aiSource = direct.source;
+    } catch (directError) {
+      // ② 小程序原生 AI 失败，回退到云函数
+      console.warn('[AI] 原生 AI 失败，回退云函数:', directError.message || directError);
+      aiFallbackReason = directError.message || '小程序原生 AI 调用失败';
+
+      try {
+        const result = await callFunction('ai_service', {
+          action: 'analyze',
+          data: { exams: payload }
+        }, { timeout: 35000 });
+
+        if (requestToken !== _analysisRequestToken) {
+          return { status: 'cancelled', html: '', meta: null };
+        }
+
+        if (result && result.code === 0 && result.data && result.data.text) {
+          aiText = result.data.text;
+          aiSource = result.data.source || 'cloud-function';
+          if (result.data.fallbackReason) {
+            aiFallbackReason = result.data.fallbackReason;
+          }
+        }
+      } catch (cloudError) {
+        console.warn('[AI] 云函数也失败:', cloudError.message || cloudError);
+        aiFallbackReason += ' | 云函数也不可用';
+      }
+    }
+
+    // 请求已被后续覆盖
     if (requestToken !== _analysisRequestToken) {
       return { status: 'cancelled', html: '', meta: null };
     }
 
-    if (!result || result.code !== 0 || !result.data || !result.data.text) {
-      throw new Error(result?.message || 'AI 暂时没有返回可用内容');
+    // ③ 如果以上都失败，降级到本地分析
+    if (!aiText) {
+      console.warn('[AI] 所有 AI 调用均失败，降级到本地分析');
+      aiText = buildLocalFallbackAnalysis(payload);
+      aiSource = 'local-fallback';
+      aiFallbackReason = 'AI 服务暂不可用，当前为基础统计结果';
     }
 
     // 缓存结果
     _lastAnalysisKey = cacheKey;
-    _lastAnalysisText = result.data.text;
+    _lastAnalysisText = aiText;
     _lastAnalysisMeta = {
-      source: result.data.source || '',
-      fallbackReason: result.data.fallbackReason || ''
+      source: aiSource,
+      fallbackReason: aiFallbackReason
     };
 
     return {
       status: 'success',
-      html: renderSuccess(result.data.text, _lastAnalysisMeta),
+      html: formatAnalysisHtml(aiText),
       meta: _lastAnalysisMeta
     };
   } catch (error) {
     if (requestToken !== _analysisRequestToken) {
       return { status: 'cancelled', html: '', meta: null };
     }
-
-    // 云函数不可用时，自动降级到本地基础分析
-    console.warn('[AI] 云函数调用失败，降级到本地分析:', error.message || error);
-    const fallbackText = buildLocalFallbackAnalysis(payload);
-    _lastAnalysisKey = cacheKey;
-    _lastAnalysisText = fallbackText;
-    _lastAnalysisMeta = {
-      source: 'local-fallback',
-      fallbackReason: '云函数 ai_service 尚未部署或暂不可用，当前为基础统计结果'
-    };
-
     return {
-      status: 'success',
-      html: renderSuccess(fallbackText, _lastAnalysisMeta),
-      meta: _lastAnalysisMeta
+      status: 'error',
+      html: '',
+      meta: null
     };
   }
-}
-
-/** 获取 loading 状态的 HTML */
-function getAnalysisLoadingHTML() {
-  return renderLoading();
 }
 
 // ==================== API 2: AI 批量识别 ====================
 
 /**
  * AI 批量识别成绩文本
- *
- * @param {string} rawText - 用户输入的成绩文本
- * @param {string[]} subjectHints - 已有科目名列表（用于本地正则提示）
- * @returns {Promise<Object>} { success, subjects?, message? }
  */
 async function parseBatchSubjects(rawText, subjectHints = []) {
   const text = String(rawText || '').trim();
@@ -221,34 +297,57 @@ async function parseBatchSubjects(rawText, subjectHints = []) {
     return { success: false, message: TEXT.batchNeedText };
   }
 
-  // 检查登录
-  const user = await getCurrentUser();
+  const user = getCurrentUser();
   if (!user) {
     return { success: false, needLogin: true, message: TEXT.batchNeedLogin };
   }
 
   try {
-    const result = await callFunction('ai_service', {
-      action: 'inputParse',
-      data: {
-        text: text,
-        subjectHints: subjectHints
-      }
-    });
+    let subjects = [];
 
-    if (!result || result.code !== 0) {
-      throw new Error(result?.message || TEXT.batchParseFailed);
+    // ① 优先使用小程序原生 AI
+    try {
+      const direct = await generateTextWithMiniProgramAI([
+        {
+          role: 'system',
+          content: '你是一个成绩录入解析助手。请从用户输入中提取科目成绩，并只返回 JSON 数组。每个元素格式为 {"name":"语文","score":120,"fullScore":150}。如果文本里有班排或年排，也可以附带 classRank、gradeRank。不要输出 Markdown，不要输出解释。'
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({ text, subjectHints }, null, 2)
+        }
+      ], {
+        temperature: 0.1,
+        timeout: 10000
+      });
+
+      const match = String(direct.text).match(/\[[\s\S]*\]/);
+      if (match) {
+        subjects = normalizeParsedSubjects(JSON.parse(match[0]));
+      }
+    } catch (directError) {
+      // ② 回退到云函数
+      console.warn('[AI] 原生 AI 识别失败，回退云函数:', directError.message || directError);
+      try {
+        const result = await callFunction('ai_service', {
+          action: 'inputParse',
+          data: { text, subjectHints }
+        });
+        if (result && result.code === 0) {
+          subjects = normalizeParsedSubjects(result?.data?.subjects || []);
+        }
+      } catch (cloudError) {
+        console.warn('[AI] 云函数识别也失败:', cloudError.message || cloudError);
+      }
     }
 
-    const parsed = normalizeParsedSubjects(result?.data?.subjects || []);
-    if (parsed.length === 0) {
+    if (subjects.length === 0) {
       return { success: false, message: TEXT.batchEmpty };
     }
 
     return {
       success: true,
-      subjects: parsed,
-      source: result?.data?.source || ''
+      subjects
     };
   } catch (error) {
     return {
@@ -258,12 +357,8 @@ async function parseBatchSubjects(rawText, subjectHints = []) {
   }
 }
 
-// ==================== 本地降级分析（云函数不可用时的 fallback）====================
+// ==================== 本地降级分析 ====================
 
-/**
- * 纯本地基础统计分析，不依赖云函数
- * 逻辑与 web 端云函数中的 buildFallbackAnalysis 一致
- */
 function buildLocalFallbackAnalysis(exams) {
   const totals = exams.map(exam => Number(exam.totalScore) || 0);
   const first = totals[0];
@@ -313,134 +408,11 @@ function buildLocalFallbackAnalysis(exams) {
   return [trendLine, bestLine, weakLine, nextLine].join('\n\n');
 }
 
-// ==================== 渲染函数（返回 HTML 字符串，由页面 setData 渲染）====================
-
-function renderEmptyCard(title, desc) {
-  const t = String(title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const d = String(desc || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return [
-    '<div class="ai-analysis-card">',
-    '  <div class="ai-analysis-card__header">',
-    '    <div>',
-    `      <div class="ai-analysis-card__eyebrow">${TEXT.analysisEyebrow}</div>`,
-    `      <h3 class="ai-analysis-card__title">${TEXT.analysisTitle}</h3>`,
-    '    </div>',
-    '  </div>',
-    '  <div class="ai-analysis-card__empty">',
-    '    <div class="ai-analysis-card__empty-icon">🪄</div>',
-    `    <div class="ai-analysis-card__empty-title">${t}</div>`,
-    `    <p class="ai-analysis-card__empty-desc">${d}</p>`,
-    '  </div>',
-    '</div>'
-  ].join('\n');
-}
-
-function renderLoginGuide() {
-  const t = String(TEXT.analysisLoginTitle).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const d = String(TEXT.analysisLoginDesc).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return [
-    '<div class="ai-analysis-card">',
-    '  <div class="ai-analysis-card__header">',
-    '    <div>',
-    `      <div class="ai-analysis-card__eyebrow">${TEXT.analysisEyebrow}</div>`,
-    `      <h3 class="ai-analysis-card__title">${TEXT.analysisTitle}</h3>`,
-    '    </div>',
-    '  </div>',
-    '  <div class="ai-analysis-card__empty">',
-    '    <div class="ai-analysis-card__empty-icon">🔐</div>',
-    `    <div class="ai-analysis-card__empty-title">${t}</div>`,
-    `    <p class="ai-analysis-card__empty-desc">${d}</p>`,
-    `    <view class="ai-analysis-card__action" bindtap="onAILoginTap">${TEXT.analysisLoginAction}</view>`,
-    '  </div>',
-    '</div>'
-  ].join('\n');
-}
-
-function renderLoading() {
-  return [
-    '<div class="ai-analysis-card">',
-    '  <div class="ai-analysis-card__header">',
-    '    <div>',
-    `      <div class="ai-analysis-card__eyebrow">${TEXT.analysisEyebrow}</div>`,
-    `      <h3 class="ai-analysis-card__title">${TEXT.analysisTitle}</h3>`,
-    '    </div>',
-    `    <span class="ai-analysis-card__ghost">${TEXT.analysisWorking}</span>`,
-    '  </div>',
-    '  <div class="ai-analysis-card__loading">',
-    '    <span class="ai-analysis-card__spinner"></span>',
-    `    <span>${TEXT.analysisLoading}</span>`,
-    '  </div>',
-    '</div>'
-  ].join('\n');
-}
-
-function renderError(message) {
-  const m = String(message || TEXT.analysisError).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return [
-    '<div class="ai-analysis-card">',
-    '  <div class="ai-analysis-card__header">',
-    '    <div>',
-    `      <div class="ai-analysis-card__eyebrow">${TEXT.analysisEyebrow}</div>`,
-    `      <h3 class="ai-analysis-card__title">${TEXT.analysisTitle}</h3>`,
-    '    </div>',
-    `    <view class="ai-analysis-card__refresh" bindtap="onAIRefreshTap">${TEXT.analysisRetry}</view>`,
-    '  </div>',
-    '  <div class="ai-analysis-card__error">',
-    '    <div class="ai-analysis-card__error-icon">⚠️</div>',
-    `    <p>${m}</p>`,
-    '  </div>',
-    '</div>'
-  ].join('\n');
-}
-
-function renderSourceNotice(meta) {
-  if (!meta || !meta.source || meta.source === 'cloudbase-ai' || meta.source === 'custom-openai-compatible') return '';
-  const detail = meta.fallbackReason
-    ? `<div class="ai-analysis-card__notice-detail">${String(meta.fallbackReason).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`
-    : '';
-  return [
-    '<div class="ai-analysis-card__notice warning">',
-    '  当前显示的是基础分析结果，AI 大模型尚未成功连通。',
-    `  ${detail}`,
-    '</div>'
-  ].join('\n');
-}
-
-function renderSuccess(text, meta = null) {
-  const body = formatAnalysisHtml(text);
-  const notice = renderSourceNotice(meta);
-  return [
-    '<div class="ai-analysis-card">',
-    '  <div class="ai-analysis-card__header">',
-    '    <div>',
-    `      <div class="ai-analysis-card__eyebrow">${TEXT.analysisEyebrow}</div>`,
-    `      <h3 class="ai-analysis-card__title">${TEXT.analysisTitle}</h3>`,
-    '    </div>',
-    `    <view class="ai-analysis-card__refresh" bindtap="onAIRefreshTap">${TEXT.analysisRefresh}</view>`,
-    '  </div>',
-    notice,
-    `  <div class="ai-analysis-card__body">${body}</div>`,
-    '</div>'
-  ].join('\n');
-}
-
 // ==================== 导出 ====================
 
 module.exports = {
-  // AI 分析
   refreshAIAnalysis,
-  getAnalysisLoadingHTML,
-
-  // AI 批量识别
   parseBatchSubjects,
-
-  // 文本常量（给页面 WXML 直接使用）
   TEXT,
-
-  // 内部渲染函数（如果页面需要自定义组合）
-  _renderLoginGuide: renderLoginGuide,
-  _renderEmptyCard: renderEmptyCard,
-  _renderLoading: renderLoading,
-  _renderError: renderError,
-  _renderSuccess: renderSuccess
+  formatAnalysisHtml
 };

@@ -44,8 +44,10 @@ Page({
 
     // AI 分析
     aiAnalysisHtml: '',
-    aiAnalysisStatus: '',
-    aiAnalysisBusy: false
+    aiAnalysisStatus: 'default',
+    aiAnalysisBusy: false,
+    aiAnalysisSource: '',
+    aiAnalysisFallbackReason: ''
   },
 
   onLoad() {
@@ -170,12 +172,20 @@ Page({
     try {
       const result = await ai.refreshAIAnalysis({ force: !!force });
 
-      // 请求被覆盖，静默丢弃
-      if (result.status === 'cancelled') return;
+      // 请求被覆盖，恢复到之前的有效状态
+      if (result.status === 'cancelled') {
+        this.setData({ aiAnalysisStatus: this.data.aiAnalysisHtml ? 'success' : 'default' });
+        return;
+      }
 
       // 成功：设置 HTML 内容
       if (result.status === 'success' && result.html) {
-        this.setData({ aiAnalysisHtml: result.html, aiAnalysisStatus: 'success' });
+        this.setData({
+          aiAnalysisHtml: result.html,
+          aiAnalysisStatus: 'success',
+          aiAnalysisSource: result.meta?.source || '',
+          aiAnalysisFallbackReason: result.meta?.fallbackReason || ''
+        });
       } else {
         // 其他状态（login/notEnough/error 回退等）
         this.setData({ aiAnalysisStatus: result.status || 'error' });
@@ -627,7 +637,7 @@ Page({
     auth.signOut();
     autoSync.handleLogoutAutoSync();
     this._syncAuthState();
-    this.setData({ aiAnalysisStatus: 'login', aiAnalysisHtml: '', aiAnalysisBusy: false });
+    this.setData({ aiAnalysisStatus: 'login', aiAnalysisHtml: '', aiAnalysisBusy: false, aiAnalysisSource: '', aiAnalysisFallbackReason: '' });
     this._setSyncStatus('', '');
     wx.showToast({ title: '已退出登录', icon: 'none' });
   },

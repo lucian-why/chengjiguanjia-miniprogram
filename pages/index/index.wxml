@@ -171,6 +171,10 @@ module.exports.getRateClass = function(score) {
             <view wx:if="{{!aiAnalysisBusy}}" class="ai-analysis-card__refresh" bindtap="onAIAction">重新分析</view>
             <view wx:else class="ai-analysis-card__ghost">分析中</view>
           </view>
+          <view wx:if="{{aiAnalysisSource === 'fallback' || aiAnalysisSource === 'local-fallback'}}" class="ai-analysis-card__notice warning">
+            <text>当前显示的是基础分析结果，AI 大模型尚未成功连通。</text>
+            <view wx:if="{{aiAnalysisFallbackReason}}" class="ai-analysis-card__notice-detail">{{aiAnalysisFallbackReason}}</view>
+          </view>
           <rich-text nodes="{{aiAnalysisHtml}}"></rich-text>
         </block>
 
