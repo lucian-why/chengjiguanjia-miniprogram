@@ -237,9 +237,26 @@ function getQuotaOverview() {
  * 使用方式：在这里添加新的邀请码，用户在设置页输入后即可激活 VIP
  */
 const INVITE_CODES = {
-  // 在这里添加邀请码，格式：'邀请码': { expireAt: null 表示永久 } 
-  // 示例：'WHY2026VIP': { expireAt: null },
-  // 示例：'TEST30DAY': { expireAt: '2026-05-09T00:00:00Z' },
+  'VIPKPOHY9': { expireAt: null },
+  'VIPETYI8U': { expireAt: null },
+  'VIP6BEPYK': { expireAt: null },
+  'VIPQ4GILS': { expireAt: null },
+  'VIP4582HR': { expireAt: null },
+  'VIPKGF7M7': { expireAt: null },
+  'VIP8WRKXV': { expireAt: null },
+  'VIP2QRQYS': { expireAt: null },
+  'VIPX0I23W': { expireAt: null },
+  'VIP3E37DM': { expireAt: null },
+  'VIPXQD5HF': { expireAt: null },
+  'VIPF80D8C': { expireAt: null },
+  'VIPYRVQTW': { expireAt: null },
+  'VIP6M3AWR': { expireAt: null },
+  'VIPTCLCHM': { expireAt: null },
+  'VIPWRS2VK': { expireAt: null },
+  'VIPZP2M3O': { expireAt: null },
+  'VIPMJ8XUF': { expireAt: null },
+  'VIPUOBSKH': { expireAt: null },
+  'VIPS2WFRX': { expireAt: null },
 };
 
 /**
