@@ -176,13 +176,13 @@ Page({
     console.log('[AI] 开始分析, force:', force);
     this.setData({ aiAnalysisStatus: 'loading', aiAnalysisBusy: true });
 
-    // 安全网：最多 45 秒后强制恢复，防止永远卡在 loading
+    // 安全网：最多 30 秒后强制降级到本地分析，防止永远卡在 loading
     const safetyTimer = setTimeout(() => {
       if (this.data.aiAnalysisBusy) {
-        console.warn('[AI] 安全网触发：45s 超时强制恢复');
-        this.setData({ aiAnalysisStatus: 'error', aiAnalysisBusy: false });
+        console.warn('[AI] 安全网触发：30s 超时，降级到本地分析');
+        this._showLocalFallback(profileId, 'AI 服务响应超时，已切换到基础统计');
       }
-    }, 45000);
+    }, 30000);
 
     try {
       const result = await ai.refreshAIAnalysis({ force: !!force });
@@ -206,15 +206,42 @@ Page({
           aiAnalysisFallbackReason: result.meta?.fallbackReason || ''
         });
       } else {
-        // 其他状态（login/notEnough/error 回退等）
-        this.setData({ aiAnalysisStatus: result.status || 'error' });
+        // AI 返回了非成功状态，尝试本地兜底
+        this._showLocalFallback(profileId, 'AI 暂时不可用，已切换到基础统计');
       }
     } catch (err) {
       console.error('[AI] 分析异常:', err);
-      this.setData({ aiAnalysisStatus: 'error' });
+      this._showLocalFallback(profileId, 'AI 服务异常，已切换到基础统计');
     } finally {
       clearTimeout(safetyTimer);
       this.setData({ aiAnalysisBusy: false });
+    }
+  },
+
+  /**
+   * 本地兜底分析：无论 AI 是否可用，用户总能看到成绩统计
+   */
+  _showLocalFallback(profileId, reason) {
+    try {
+      const exams = storage.getExams(profileId);
+      if (exams.length < 2) {
+        this.setData({ aiAnalysisStatus: 'notEnough', aiAnalysisBusy: false });
+        return;
+      }
+      const payload = ai.buildAnalysisPayload(exams);
+      const localText = ai.buildLocalFallbackAnalysis(payload);
+      const html = ai.formatAnalysisHtml(localText);
+      this.setData({
+        aiAnalysisHtml: html,
+        aiAnalysisStatus: 'success',
+        aiAnalysisSource: 'local-fallback',
+        aiAnalysisFallbackReason: reason || 'AI 服务暂不可用，当前为基础统计结果',
+        aiAnalysisBusy: false
+      });
+      console.log('[AI] 已降级到本地分析');
+    } catch (fallbackErr) {
+      console.error('[AI] 本地分析也失败:', fallbackErr);
+      this.setData({ aiAnalysisStatus: 'error', aiAnalysisBusy: false });
     }
   },
 
@@ -234,6 +261,13 @@ Page({
     this.setData({ aiAnalysisBusy: false }, () => {
       this._refreshAnalysis({ force: true });
     });
+  },
+
+  onShowLocalAnalysis() {
+    const profileId = this._getActiveProfileId();
+    if (profileId) {
+      this._showLocalFallback(profileId, '用户选择查看基础统计');
+    }
   },
 
   _saveAndReload() {

@@ -421,6 +421,8 @@ function buildLocalFallbackAnalysis(exams) {
 module.exports = {
   refreshAIAnalysis,
   parseBatchSubjects,
+  buildLocalFallbackAnalysis,
+  buildAnalysisPayload,
   TEXT,
   formatAnalysisHtml
 };

@@ -181,8 +181,10 @@ module.exports.getRateClass = function(score) {
 
         <view class="ai-analysis-card__error" wx:elif="{{aiAnalysisStatus === 'error'}}">
           <view class="ai-analysis-card__error-icon">⚠️</view>
-          <view class="ai-analysis-card__error-text">AI 分析失败，请稍后重试</view>
-          <view class="ai-analysis-card__refresh" style="margin-top:16rpx" bindtap="onAIAction">重试</view>
+          <view class="ai-analysis-card__error-text">AI 分析暂时不可用</view>
+          <view class="ai-analysis-card__error-desc" style="font-size:24rpx;color:#999;margin-top:8rpx">已自动切换为基础统计，点击重试可再次尝试 AI 分析</view>
+          <view class="ai-analysis-card__refresh" style="margin-top:16rpx" bindtap="onAIAction">重试 AI 分析</view>
+          <view class="ai-analysis-card__refresh" style="margin-top:8rpx;font-size:24rpx;color:#666" bindtap="onShowLocalAnalysis">查看基础统计</view>
         </view>
 
         <!-- 默认空状态（首次/未触发） -->
