@@ -56,6 +56,7 @@ async function uploadProfile(profileId) {
     profileData: bundleInfo.bundle,
     examCount: bundleInfo.examCount,
     dataSize: bundleInfo.dataSize,
+    userId: user.id || '',
     userEmail: user.email || ''
   });
 
@@ -63,12 +64,16 @@ async function uploadProfile(profileId) {
 }
 
 async function downloadProfile(cloudProfileId, targetProfileId, targetProfileName) {
-  ensureLoggedIn();
+  const user = ensureLoggedIn();
   if (!cloudProfileId) {
     throw new Error('缺少要恢复的云端档案');
   }
 
-  const result = await callFunction('getCloudProfileData', { profileId: cloudProfileId });
+  const result = await callFunction('getCloudProfileData', {
+    profileId: cloudProfileId,
+    userId: user.id || '',
+    userEmail: user.email || ''
+  });
   const data = unwrapResult(result, '读取云端档案详情失败');
 
   const rawPayload = data.bundle || data.profileData || data.profile_data || data;
@@ -98,6 +103,7 @@ async function deleteCloudProfiles(profileIds) {
 
   const result = await callFunction('deleteCloudProfiles', {
     profileIds: ids,
+    userId: user.id || '',
     userEmail: user.email || ''
   });
   return unwrapResult(result, '删除云端档案失败');
@@ -112,6 +118,7 @@ async function restoreDeletedProfiles(profileIds) {
 
   const result = await callFunction('restoreCloudProfiles', {
     profileIds: ids,
+    userId: user.id || '',
     userEmail: user.email || ''
   });
   return unwrapResult(result, '恢复档案失败');
@@ -126,6 +133,7 @@ async function purgeDeletedProfiles(profileIds) {
 
   const result = await callFunction('purgeDeletedProfiles', {
     profileIds: ids,
+    userId: user.id || '',
     userEmail: user.email || ''
   });
   return unwrapResult(result, '彻底删除档案失败');
