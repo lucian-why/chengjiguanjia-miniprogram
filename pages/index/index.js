@@ -185,6 +185,7 @@ Page({
   },
 
   onAIAction() {
+    console.log('[AI] onAIAction clicked, status:', this.data.aiAnalysisStatus);
     const s = this.data.aiAnalysisStatus;
     if (s === 'login') {
       this.openAuthModal();

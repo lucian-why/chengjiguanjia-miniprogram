@@ -148,7 +148,7 @@ module.exports.getRateClass = function(score) {
             <view class="ai-analysis-card__eyebrow">AI 分析报告</view>
             <view class="ai-analysis-card__title">需要登录</view>
           </view>
-          <button class="ai-analysis-card__action" bindtap="openAuthModal">登录后使用</button>
+          <view class="ai-analysis-card__action" bindtap="openAuthModal">登录后使用</view>
         </view>
 
         <view class="ai-analysis-card__loading" wx:elif="{{aiAnalysisStatus === 'loading'}}">
@@ -168,8 +168,8 @@ module.exports.getRateClass = function(score) {
               <view class="ai-analysis-card__eyebrow">AI 分析报告</view>
               <view class="ai-analysis-card__title">成绩分析助手</view>
             </view>
-            <button wx:if="{{!aiAnalysisBusy}}" class="ai-analysis-card__refresh" bindtap="onAIAction">重新分析</button>
-            <button wx:else class="ai-analysis-card__ghost" disabled>分析中</button>
+            <view wx:if="{{!aiAnalysisBusy}}" class="ai-analysis-card__refresh" bindtap="onAIAction">重新分析</view>
+            <view wx:else class="ai-analysis-card__ghost">分析中</view>
           </view>
           <rich-text nodes="{{aiAnalysisHtml}}"></rich-text>
         </block>
@@ -177,7 +177,7 @@ module.exports.getRateClass = function(score) {
         <view class="ai-analysis-card__error" wx:elif="{{aiAnalysisStatus === 'error'}}">
           <view class="ai-analysis-card__error-icon">⚠️</view>
           <view class="ai-analysis-card__error-text">AI 分析失败，请稍后重试</view>
-          <button class="ai-analysis-card__refresh" style="margin-top:16rpx" bindtap="onAIAction">重试</button>
+          <view class="ai-analysis-card__refresh" style="margin-top:16rpx" bindtap="onAIAction">重试</view>
         </view>
 
         <!-- 默认空状态（首次/未触发） -->
@@ -185,7 +185,7 @@ module.exports.getRateClass = function(score) {
           <view class="ai-analysis-card__empty-icon">🤖</view>
           <view class="ai-analysis-card__empty-title">AI 成绩分析</view>
           <view class="ai-analysis-card__empty-desc">基于你的考试成绩，AI 将为你提供个性化学习建议</view>
-          <button class="ai-analysis-card__action" style="margin-top:16rpx" bindtap="onAIAction">开始分析</button>
+          <view class="ai-analysis-card__action" style="margin-top:16rpx" bindtap="onAIAction">开始分析</view>
         </view>
       </view>
     </block>
