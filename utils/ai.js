@@ -154,8 +154,10 @@ function withTimeout(promise, timeout, label) {
 
 /**
  * 使用小程序原生 AI 调用大模型
- * API: wx.cloud.extend.AI.createModel(provider).generateText({ data: { model, messages } })
- * 返回: Promise<string>（直接返回文本内容）
+ *
+ * ⚠️ 关键 API 差异（来自微信官方文档）：
+ * - generateText: 参数不需要 data 包裹，返回值是 { choices: [{ message: { content } }] }
+ * - streamText: 参数需要 data 包裹，返回值是流式对象
  */
 async function generateTextWithMiniProgramAI(messages, options = {}) {
   if (!isMiniProgramAIAvailable()) {
@@ -168,15 +170,15 @@ async function generateTextWithMiniProgramAI(messages, options = {}) {
   console.log('[AI] 调用小程序原生 AI, model:', modelName, 'timeout:', timeout);
 
   const model = wx.cloud.extend.AI.createModel(MINI_PROGRAM_AI_PROVIDER);
+
+  // generateText 参数直接传，不需要 data 包裹（streamText 才需要）
   const requestParams = {
-    data: {
-      model: modelName,
-      messages,
-      temperature: options.temperature ?? 0.45
-    }
+    model: modelName,
+    messages,
+    temperature: options.temperature ?? 0.45
   };
 
-  // 用 Promise + 手动超时，避免微信框架的 generateText Promise 不可控
+  // 用手动 Promise + 超时，避免微信框架 Promise 不可控
   return new Promise((resolve, reject) => {
     let settled = false;
     const timer = setTimeout(() => {
@@ -187,19 +189,37 @@ async function generateTextWithMiniProgramAI(messages, options = {}) {
     }, timeout);
 
     try {
-      model.generateText(requestParams).then((text) => {
+      model.generateText(requestParams).then((res) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
 
-        if (!String(text || '').trim()) {
+        console.log('[AI] 小程序原生 AI 原始返回类型:', typeof res, 'keys:', res ? Object.keys(res).join(',') : 'null');
+
+        // 返回值是完整响应对象: { choices: [{ message: { content: "..." } }] }
+        let text = '';
+        if (res && res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content) {
+          text = String(res.choices[0].message.content).trim();
+        } else if (typeof res === 'string') {
+          // 兼容：某些版本可能直接返回 string
+          text = res.trim();
+        } else if (res && res.content) {
+          // 兼容：另一种可能的返回格式
+          text = String(res.content).trim();
+        } else if (res && res.data && typeof res.data === 'string') {
+          // 兼容：嵌套 data
+          text = res.data.trim();
+        }
+
+        if (!text) {
+          console.warn('[AI] 小程序原生 AI 返回内容为空, res:', JSON.stringify(res).substring(0, 300));
           reject(new Error('Mini Program AI returned empty content'));
           return;
         }
 
-        console.log('[AI] 小程序原生 AI 成功, 返回长度:', String(text).length);
+        console.log('[AI] 小程序原生 AI 成功, 文本长度:', text.length);
         resolve({
-          text: String(text).trim(),
+          text,
           source: 'miniprogram-ai'
         });
       }).catch((err) => {
