@@ -707,7 +707,10 @@ Page({
 
       this._syncAuthState();
       await autoSync.syncAfterLogin();
-      this._refreshAnalysis(); // 登录后重新检查 AI 分析状态
+      // 登录后重新检查 AI 分析状态
+      if (typeof this._refreshAnalysis === 'function') {
+        this._refreshAIStatus();
+      }
       this._setAuthStatus(mode === 'resetpwd' ? '密码已重置' : '操作成功', 'success');
       wx.showToast({ title: mode === 'resetpwd' ? '重置成功' : '登录成功', icon: 'success' });
       setTimeout(() => this.closeAuthModal(), 500);

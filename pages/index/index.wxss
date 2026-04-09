@@ -2237,8 +2237,9 @@ view, text, navigator, image {
 .ai-analysis-card {
   border-radius: 20rpx;
   margin-top: 24rpx;
+  padding: 0 0 28rpx 0;
   box-shadow: var(--shadow-card);
-  border: 1rpx solid var(--border-color);
+  border: 1rpx solid rgba(124, 169, 201, 0.2);
   background:
     radial-gradient(circle at top left, rgba(124, 169, 201, 0.16), transparent 34%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 244, 250, 0.98) 100%);

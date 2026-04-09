@@ -141,7 +141,6 @@ module.exports.getRateClass = function(score) {
     </view>
 
     <!-- AI 分析卡片 -->
-    <block wx:if="{{analysisMode !== 'radar'}}">
       <view class="ai-analysis-card">
         <view class="ai-analysis-card__header" wx:if="{{aiAnalysisStatus === 'login'}}">
           <view>
@@ -197,7 +196,6 @@ module.exports.getRateClass = function(score) {
           <view class="ai-analysis-card__action" style="margin-top:16rpx" bindtap="onAIAction">开始分析</view>
         </view>
       </view>
-    </block>
   </view>
 
   <view class="tab-content" wx:if="{{currentTab === 'settings'}}">
