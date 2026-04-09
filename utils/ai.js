@@ -82,17 +82,122 @@ function buildAnalysisPayload(exams) {
 
 /**
  * 格式化 AI 分析文本为 rich-text 可用的 HTML 片段
- * **加粗** → <strong>，双换行 → 分段
+ *
+ * 支持的 Markdown 语法：
+ *   # ## ### #### → <h1>~<h4>
+ *   - / * 无序列表  → <ul><li>
+ *   1. 2. 有序列表  → <ol><li>
+ *   **加粗**        → <strong>
+ *   @image:name     → 占位提示（rich-text 不支持动态本地图片）
+ *   ![alt](url)     → <img>
+ *   双换行           → 分段
+ *   单换行           → <br>
  */
 function formatAnalysisHtml(text) {
-  const escaped = String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const withStrong = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  return withStrong
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter(Boolean)
-    .map((block) => `<p>${block.replace(/\n/g, '<br>')}</p>`)
+  if (!text) return '';
+
+  const raw = String(text);
+
+  // ===== 按行解析，保留结构信息 =====
+  const lines = raw.split('\n');
+  const blocks = [];    // 输出 HTML 块
+  let listStack = [];   // 列表栈：{ type: 'ul'|'ol', items: [] }
+  let inList = false;
+
+  function flushList() {
+    if (!inList || listStack.length === 0) return;
+    const list = listStack.pop();
+    if (list.items.length > 0) {
+      const tag = list.type;
+      const inner = list.items.map(item => `<li>${item}</li>`).join('');
+      blocks.push(`<${tag}>${inner}</${tag}>`);
+    }
+    inList = listStack.length > 0;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+
+    // 跳过空行（用 flushList + 空块分隔）
+    if (/^\s*$/.test(line)) {
+      flushList();
+      blocks.push('');
+      continue;
+    }
+
+    // ---------- 标题 ----------
+    const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      flushList();
+      const level = headingMatch[1].length;
+      const content = escapeInline(headingMatch[2]).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      blocks.push(`<h${level}>${content}</h${level}>`);
+      continue;
+    }
+
+    // ---------- 无序列表 (- 或 *) ----------
+    const ulMatch = line.match(/^[\s]*[-*]\s+(.+)$/);
+    if (ulMatch) {
+      if (!inList || (listStack.length > 0 && listStack[listStack.length - 1].type !== 'ul')) {
+        flushList();
+        listStack.push({ type: 'ul', items: [] });
+        inList = true;
+      }
+      listStack[listStack.length - 1].items.push(formatInline(ulMatch[1]));
+      continue;
+    }
+
+    // ---------- 有序列表 (1. 2. 等) ----------
+    const olMatch = line.match(/^[\s]*(\d+)\.\s+(.+)$/);
+    if (olMatch) {
+      if (!inList || (listStack.length > 0 && listStack[listStack.length - 1].type !== 'ol')) {
+        flushList();
+        listStack.push({ type: 'ol', items: [] });
+        inList = true;
+      }
+      listStack[listStack.length - 1].items.push(formatInline(olMatch[2]));
+      continue;
+    }
+
+    // ---------- 普通段落 ----------
+    flushList();
+    blocks.push(`<p>${formatInline(line)}</p>`);
+  }
+
+  // 结束时 flush 残留列表
+  flushList();
+
+  // 合并：相邻非空块之间不额外加空白，连续空块合并为段落间隔
+  return blocks
+    .filter((_, idx, arr) => {
+      if (_ !== '') return true;
+      const prevNonEmpty = arr.slice(0, idx).reverse().find(b => b !== '');
+      const nextNonEmpty = arr.slice(idx + 1).find(b => b !== '');
+      return prevNonEmpty && nextNonEmpty;
+    })
+    .map(block => block === '' ? '' : block)
     .join('');
+}
+
+/**
+ * 格式化行内内容：转义 HTML 特殊字符 + 加粗 + 图片标签
+ */
+function formatInline(text) {
+  let result = escapeInline(text);
+  result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  result = result.replace(/@image:(\S+)/g, '<span style="color:#999;font-size:12px;">[图片: $1]</span>');
+  result = result.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0;"/>');
+  return result;
+}
+
+/**
+ * 转义 HTML 特殊字符（防止 XSS 和渲染异常）
+ */
+function escapeInline(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function normalizeParsedSubjects(subjects = []) {

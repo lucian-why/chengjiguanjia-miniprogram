@@ -141,7 +141,7 @@ Page({
     }
 
     this._refreshCurrentExam();
-    this._refreshAnalysisStatus();
+    this._refreshAIStatus();
   },
 
   // ======================== AI 分析 ========================
@@ -150,7 +150,7 @@ Page({
    * 仅刷新 AI 分析卡片的显示状态（不发起 AI 请求）
    * 用于页面初始化时，快速展示正确的按钮状态
    */
-  _refreshAnalysisStatus() {
+  _refreshAIStatus() {
     const profileId = this._getActiveProfileId();
     if (!profileId || profileId === '_none') {
       this.setData({ aiAnalysisStatus: 'default', aiAnalysisBusy: false });
@@ -172,7 +172,7 @@ Page({
     this.setData({ aiAnalysisStatus: 'default', aiAnalysisBusy: false });
   },
 
-  async _refreshAnalysis({ force } = {}) {
+  async _refreshAIAnalysis({ force } = {}) {
     const profileId = this._getActiveProfileId();
     if (!profileId || profileId === '_none') {
       // 没有活跃档案时也设置默认状态，避免 status 为空
@@ -286,7 +286,7 @@ Page({
     }
     // 强制刷新：重置 busy 状态后再调用
     this.setData({ aiAnalysisBusy: false }, () => {
-      this._refreshAnalysis({ force: true });
+      this._refreshAIAnalysis({ force: true });
     });
   },
 
