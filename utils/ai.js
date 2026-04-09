@@ -127,15 +127,29 @@ function isMiniProgramAIAvailable() {
 }
 
 function withTimeout(promise, timeout, label) {
-  let timer = null;
-  return Promise.race([
-    promise.finally(() => {
-      if (timer) clearTimeout(timer);
-    }),
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${label || 'AI request'} timeout`)), timeout);
-    })
-  ]);
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`${label || 'AI request'} timeout (${timeout}ms)`));
+    }, timeout);
+
+    Promise.resolve(promise).then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
 }
 
 /**
@@ -149,28 +163,61 @@ async function generateTextWithMiniProgramAI(messages, options = {}) {
     throw new Error('wx.cloud.extend.AI is unavailable');
   }
 
+  const modelName = options.model || MINI_PROGRAM_AI_MODEL;
+  const timeout = options.timeout || MINI_PROGRAM_AI_TIMEOUT;
+  console.log('[AI] 调用小程序原生 AI, model:', modelName, 'timeout:', timeout);
+
   const model = wx.cloud.extend.AI.createModel(MINI_PROGRAM_AI_PROVIDER);
   const requestParams = {
     data: {
-      model: options.model || MINI_PROGRAM_AI_MODEL,
+      model: modelName,
       messages,
       temperature: options.temperature ?? 0.45
     }
   };
 
-  console.log('[AI] 调用小程序原生 AI, model:', requestParams.data.model, 'timeout:', options.timeout || MINI_PROGRAM_AI_TIMEOUT);
+  // 用 Promise + 手动超时，避免微信框架的 generateText Promise 不可控
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      console.warn('[AI] 小程序原生 AI 超时 (' + timeout + 'ms)');
+      reject(new Error('小程序原生AI超时 (' + timeout + 'ms)'));
+    }, timeout);
 
-  const text = await withTimeout(model.generateText(requestParams), options.timeout || MINI_PROGRAM_AI_TIMEOUT, 'mini-program-ai');
+    try {
+      model.generateText(requestParams).then((text) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
 
-  if (!String(text || '').trim()) {
-    throw new Error('Mini Program AI returned empty content');
-  }
+        if (!String(text || '').trim()) {
+          reject(new Error('Mini Program AI returned empty content'));
+          return;
+        }
 
-  console.log('[AI] 小程序原生 AI 成功, 返回长度:', String(text).length);
-  return {
-    text: String(text).trim(),
-    source: 'miniprogram-ai'
-  };
+        console.log('[AI] 小程序原生 AI 成功, 返回长度:', String(text).length);
+        resolve({
+          text: String(text).trim(),
+          source: 'miniprogram-ai'
+        });
+      }).catch((err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        const msg = err && (err.message || err.errMsg || err.msg || String(err));
+        console.warn('[AI] 小程序原生 AI 失败:', msg);
+        reject(new Error('小程序原生AI失败: ' + msg));
+      });
+    } catch (syncErr) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      console.warn('[AI] 小程序原生 AI 同步异常:', syncErr);
+      reject(new Error('小程序原生AI同步异常: ' + (syncErr.message || String(syncErr))));
+    }
+  });
 }
 
 // ==================== API 1: AI 成绩分析 ====================
@@ -208,6 +255,7 @@ async function refreshAIAnalysis({ force = false } = {}) {
     let aiFallbackReason = '';
 
     // ① 优先使用小程序原生 AI
+    console.log('[AI] refreshAIAnalysis: 尝试原生 AI (requestToken:', requestToken, ')');
     try {
       const direct = await generateTextWithMiniProgramAI([
         {

@@ -141,10 +141,37 @@ Page({
     }
 
     this._refreshCurrentExam();
-    this._refreshAnalysis();
+    this._refreshAnalysisStatus();
   },
 
   // ======================== AI 分析 ========================
+
+  /**
+   * 仅刷新 AI 分析卡片的显示状态（不发起 AI 请求）
+   * 用于页面初始化时，快速展示正确的按钮状态
+   */
+  _refreshAnalysisStatus() {
+    const profileId = this._getActiveProfileId();
+    if (!profileId || profileId === '_none') {
+      this.setData({ aiAnalysisStatus: 'default', aiAnalysisBusy: false });
+      return;
+    }
+    if (!auth.getCurrentUser()) {
+      this.setData({ aiAnalysisStatus: 'login', aiAnalysisBusy: false });
+      return;
+    }
+    const exams = storage.getExams(profileId);
+    if (exams.length < 2) {
+      this.setData({ aiAnalysisStatus: 'notEnough', aiAnalysisBusy: false });
+      return;
+    }
+    // 有足够数据且已登录：如果之前有缓存结果就显示成功，否则显示 default（等待用户主动触发）
+    if (this.data.aiAnalysisHtml && this.data.aiAnalysisStatus === 'success') {
+      return; // 保持当前成功状态
+    }
+    this.setData({ aiAnalysisStatus: 'default', aiAnalysisBusy: false });
+  },
+
   async _refreshAnalysis({ force } = {}) {
     const profileId = this._getActiveProfileId();
     if (!profileId || profileId === '_none') {
