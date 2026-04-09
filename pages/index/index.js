@@ -9,6 +9,7 @@ const auth = require('../../utils/auth');
 const cloudSync = require('../../utils/cloudSync');
 const autoSync = require('../../utils/autoSync');
 const ai = require('../../utils/ai');
+const vip = require('../../utils/vip');
 
 const defs = require('../../modules/defs');
 
@@ -43,11 +44,16 @@ Page({
     ...defs.auth,
 
     // AI 分析
-    aiAnalysisHtml: '',
-    aiAnalysisStatus: 'default',
-    aiAnalysisBusy: false,
-    aiAnalysisSource: '',
-    aiAnalysisFallbackReason: ''
+  aiAnalysisHtml: '',
+  aiAnalysisStatus: 'default',
+  aiAnalysisBusy: false,
+  aiAnalysisSource: '',
+  aiAnalysisFallbackReason: '',
+  // VIP 配额状态
+  isVip: false,
+  aiQuotaMessage: '',
+  aiQuotaUsed: 0,
+  aiQuotaLimit: 2
   },
 
   onLoad() {
@@ -186,6 +192,19 @@ Page({
       return;
     }
 
+    // 前置检查1.5：VIP 配额检查（非VIP每天限2次）
+    const aiQuotaCheck = vip.checkLimit('aiAnalysis');
+    if (!aiQuotaCheck.allowed) {
+      this.setData({
+        aiAnalysisStatus: 'quotaExceeded',
+        aiAnalysisBusy: false,
+        aiQuotaMessage: aiQuotaCheck.reason || '今日AI分析次数已用完',
+        aiQuotaUsed: aiQuotaCheck.used || 0,
+        aiQuotaLimit: aiQuotaCheck.limit || 2
+      });
+      return;
+    }
+
     // 前置检查2：考试数据量
     const exams = storage.getExams(profileId);
     if (exams.length < 2) {
@@ -226,6 +245,7 @@ Page({
 
       // 成功：设置 HTML 内容
       if (result.status === 'success' && result.html) {
+        vip.consumeQuota('aiAnalysis');  // 消耗一次AI分析配额
         this.setData({
           aiAnalysisHtml: result.html,
           aiAnalysisStatus: 'success',
@@ -277,6 +297,21 @@ Page({
     console.log('[AI] onAIAction clicked, status:', s, 'busy:', this.data.aiAnalysisBusy);
     if (s === 'login') {
       this.openAuthModal();
+      return;
+    }
+    // 配额已用完，引导升级
+    if (s === 'quotaExceeded') {
+      this.setData({
+        showConfirmModal: true,
+        confirmIcon: '👑',
+        confirmIconType: 'info',
+        confirmTitle: '今日分析次数已用完',
+        confirmMessage: '免费版每天可使用 2 次 AI 分析，升级 VIP 解锁无限次数。',
+        confirmOkText: '了解更多',
+        confirmOkClass: 'btn-primary',
+        confirmShowCancel: true,
+        _confirmCallback: () => { wx.showToast({ title: '敬请期待', icon: 'none' }); }
+      });
       return;
     }
     // 如果卡在 loading 状态超过一定时间，允许用户再次点击强制重新开始
@@ -452,7 +487,8 @@ Page({
       authDisplayName: user ? (user.nickname || user.email || user.phone || '已登录') : '未登录',
       authDisplayDesc: user
         ? '当前账号已登录，系统会自动同步云端数据。'
-        : '登录后将自动同步到云端，多设备同账号保持一致。'
+        : '登录后将自动同步到云端，多设备同账号保持一致。',
+      isVip: vip.isVip(user)
     });
   },
 
@@ -908,6 +944,25 @@ Page({
     const selectedIds = this.data.deletedProfileSelection || [];
     if (!selectedIds.length) {
       wx.showToast({ title: '请选择要恢复的档案', icon: 'none' });
+      return;
+    }
+
+    // VIP 限制：非VIP不能从回收站恢复
+    const recycleCheck = vip.checkLimit('recycleBinRestore');
+    if (!recycleCheck.allowed) {
+      this.setData({
+        showConfirmModal: true,
+        confirmIcon: '👑',
+        confirmIconType: 'info',
+        confirmTitle: '需要 VIP 权限',
+        confirmMessage: recycleCheck.reason || '升级 VIP 后可恢复已删除的档案数据。',
+        confirmOkText: '了解更多',
+        confirmOkClass: 'btn-primary',
+        confirmShowCancel: true,
+        _confirmCallback: () => {
+          wx.showToast({ title: '敬请期待', icon: 'none' });
+        }
+      });
       return;
     }
 

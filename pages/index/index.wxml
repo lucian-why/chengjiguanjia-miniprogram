@@ -188,6 +188,15 @@ module.exports.getRateClass = function(score) {
           <view class="ai-analysis-card__refresh" style="margin-top:8rpx;font-size:24rpx;color:#666" bindtap="onShowLocalAnalysis">查看基础统计</view>
         </view>
 
+        <!-- 配额超限（非VIP每日次数用完） -->
+        <view class="ai-analysis-card__empty quota-exceeded" wx:elif="{{aiAnalysisStatus === 'quotaExceeded'}}">
+          <view class="ai-analysis-card__empty-icon">👑</view>
+          <view class="ai-analysis-card__empty-title">今日分析次数已用完</view>
+          <view class="ai-analysis-card__empty-desc">{{aiQuotaMessage || '免费版每天可使用 2 次 AI 分析，升级 VIP 解锁无限次数'}}</view>
+          <view class="ai-analysis-card__action vip-upgrade-btn" style="margin-top:16rpx;background:linear-gradient(135deg,#f6d365,#fda085);color:#7a4a00;border:none;" bindtap="onAIAction">了解更多</view>
+          <view class="quota-info" style="margin-top:16rpx;font-size:22rpx;color:#b0a090;text-align:center;">今日已使用 {{aiQuotaUsed || 0}} / {{aiQuotaLimit || 2}} 次</view>
+        </view>
+
         <!-- 默认空状态（首次/未触发） -->
         <view class="ai-analysis-card__empty" wx:else>
           <view class="ai-analysis-card__empty-icon">🤖</view>

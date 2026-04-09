@@ -1,6 +1,7 @@
 const storage = require('../utils/storage');
 const auth = require('../utils/auth');
 const cloudSync = require('../utils/cloudSync');
+const vip = require('../utils/vip');
 
 function createProfileModule(page) {
   function switchProfileByIndex(index, toastTitle) {
@@ -61,6 +62,26 @@ function createProfileModule(page) {
     const name = page.data.newProfileName.trim();
     if (!name) {
       wx.showToast({ title: '请输入档案名称', icon: 'none' });
+      return;
+    }
+
+    // VIP 限制：非VIP最多2个档案
+    const currentCount = storage.getProfiles().length;
+    const profileCheck = vip.checkLimit('profileCount', currentCount);
+    if (!profileCheck.allowed) {
+      page.setData({
+        showConfirmModal: true,
+        confirmIcon: '👑',
+        confirmIconType: 'info',
+        confirmTitle: '升级 VIP 解锁更多档案',
+        confirmMessage: profileCheck.reason || '免费版最多创建 2 个档案，升级 VIP 可创建更多。',
+        confirmOkText: '了解更多',
+        confirmOkClass: 'btn-primary',
+        confirmShowCancel: true,
+        _confirmCallback: () => {
+          wx.showToast({ title: '敬请期待', icon: 'none' });
+        }
+      });
       return;
     }
 
