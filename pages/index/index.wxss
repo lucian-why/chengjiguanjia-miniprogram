@@ -2498,3 +2498,63 @@ view, text, navigator, image {
 .ai-analysis-card__error {
   color: #d26969;
 }
+
+/* ===== 邀请码 ===== */
+.invite-code-row {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+  margin-top: 16rpx;
+}
+
+.invite-code-input {
+  flex: 1;
+}
+
+.invite-code-msg {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  padding: 14rpx 20rpx;
+  border-radius: 14rpx;
+  line-height: 1.5;
+}
+
+.invite-code-msg.success {
+  color: #2e7d32;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.invite-code-msg.error {
+  color: #c62828;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* VIP 已激活卡片 */
+.vip-active-card {
+  background: linear-gradient(135deg, rgba(255, 248, 225, 0.95), rgba(255, 243, 200, 0.9));
+  border-color: rgba(232, 168, 124, 0.25);
+}
+
+.vip-active-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.vip-active-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 18rpx;
+  background: linear-gradient(135deg, #f6d365, #fda085);
+  color: #7a4a00;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.vip-active-desc {
+  font-size: 24rpx;
+  color: #8b7666;
+  line-height: 1.5;
+}

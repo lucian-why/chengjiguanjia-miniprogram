@@ -230,6 +230,64 @@ function getQuotaOverview() {
   };
 }
 
+/**
+ * 邀请码列表（本地硬编码，简单实现）
+ * 格式：{ code: 邀请码, expireAt: 过期时间 ISO 字符串 | null }
+ * 
+ * 使用方式：在这里添加新的邀请码，用户在设置页输入后即可激活 VIP
+ */
+const INVITE_CODES = {
+  // 在这里添加邀请码，格式：'邀请码': { expireAt: null 表示永久 } 
+  // 示例：'WHY2026VIP': { expireAt: null },
+  // 示例：'TEST30DAY': { expireAt: '2026-05-09T00:00:00Z' },
+};
+
+/**
+ * 兑换邀请码
+ *
+ * @param {string} code - 用户输入的邀请码
+ * @returns {{ success: boolean, reason?: string, expireAt?: string|null }}
+ */
+function redeemInviteCode(code) {
+  if (!code || !code.trim()) {
+    return { success: false, reason: '请输入邀请码' };
+  }
+
+  const trimmed = code.trim().toUpperCase();
+
+  // 已是 VIP，无需重复激活
+  if (isVip()) {
+    return { success: false, reason: '您已经是 VIP 用户，无需再次激活' };
+  }
+
+  const entry = INVITE_CODES[trimmed];
+  if (!entry) {
+    return { success: false, reason: '邀请码无效，请检查后重试' };
+  }
+
+  // 检查邀请码本身是否过期
+  if (entry.expireAt && new Date(entry.expireAt).getTime() < Date.now()) {
+    return { success: false, reason: '该邀请码已过期' };
+  }
+
+  // 检查该邀请码是否已被当前设备使用过
+  const usedKey = 'xueji_vip_used_codes';
+  const usedCodes = _readJSON(usedKey, []);
+  if (usedCodes.includes(trimmed)) {
+    return { success: false, reason: '该邀请码已被使用过' };
+  }
+
+  // 激活 VIP：有效期 365 天（从激活时刻起）
+  const expireAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  setVipStatus({ isVip: true, expireAt });
+
+  // 标记邀请码已使用
+  usedCodes.push(trimmed);
+  _writeJSON(usedKey, usedCodes);
+
+  return { success: true, expireAt };
+}
+
 module.exports = {
   isVip,
   setVipStatus,
@@ -237,5 +295,6 @@ module.exports = {
   consumeQuota,
   resetQuota,
   getQuotaOverview,
+  redeemInviteCode,
   LIMITS
 };

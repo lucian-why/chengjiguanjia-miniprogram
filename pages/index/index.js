@@ -53,7 +53,12 @@ Page({
   isVip: false,
   aiQuotaMessage: '',
   aiQuotaUsed: 0,
-  aiQuotaLimit: 2
+  aiQuotaLimit: 2,
+  // 邀请码
+  inviteCode: '',
+  inviteCodeBusy: false,
+  inviteCodeMessage: '',
+  inviteCodeMessageType: ''
   },
 
   onLoad() {
@@ -1014,5 +1019,46 @@ Page({
       confirmOkClass: 'btn-danger',
       confirmShowCancel: true
     });
+  },
+
+  // ======================== 邀请码 ========================
+
+  onInviteCodeInput(e) {
+    this.setData({ inviteCode: e.detail.value });
+  },
+
+  async submitInviteCode() {
+    const code = (this.data.inviteCode || '').trim();
+    if (!code) {
+      wx.showToast({ title: '请输入邀请码', icon: 'none' });
+      return;
+    }
+
+    try {
+      this.setData({ inviteCodeBusy: true, inviteCodeMessage: '', inviteCodeMessageType: '' });
+      const result = vip.redeemInviteCode(code);
+
+      if (result.success) {
+        this._syncAuthState();
+        this.setData({
+          inviteCodeMessage: '🎉 VIP 激活成功！已解锁全部功能',
+          inviteCodeMessageType: 'success',
+          inviteCode: ''
+        });
+        wx.showToast({ title: 'VIP 激活成功', icon: 'success' });
+      } else {
+        this.setData({
+          inviteCodeMessage: result.reason || '邀请码无效',
+          inviteCodeMessageType: 'error'
+        });
+      }
+    } catch (err) {
+      this.setData({
+        inviteCodeMessage: '激活失败，请稍后重试',
+        inviteCodeMessageType: 'error'
+      });
+    } finally {
+      this.setData({ inviteCodeBusy: false });
+    }
   }
 });
