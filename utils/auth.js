@@ -53,7 +53,8 @@ function mapCloudUser(data) {
     nickname: user.nickname || user.email || user.phone || '云端用户',
     avatarUrl: user.avatarUrl || '',
     isAdmin: !!user.isAdmin,
-    role: user.role || ''
+    role: user.role || '',
+    vipExpireAt: user.vipExpireAt || user.vip_expire_at || null
   };
 }
 
@@ -396,10 +397,14 @@ async function refreshUser() {
     const user = getCurrentUser();
     if (!user) return null;
 
-    // 更新本地缓存的用户信息
+    // 更新本地缓存的用户信息（包括 VIP 状态）
     user.nickname = cloudData.nickname || user.nickname;
     user.email = cloudData.email || user.email;
     user.avatarUrl = cloudData.avatarUrl || user.avatarUrl;
+    if (cloudData.role) user.role = cloudData.role;
+    if (cloudData.vipExpireAt || cloudData.vip_expire_at) {
+      user.vipExpireAt = cloudData.vipExpireAt || cloudData.vip_expire_at;
+    }
     saveSession({ token, user });
     return user;
   } catch (error) {
