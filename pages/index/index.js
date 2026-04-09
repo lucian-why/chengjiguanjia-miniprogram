@@ -145,7 +145,11 @@ Page({
   // ======================== AI 分析 ========================
   async _refreshAnalysis({ force } = {}) {
     const profileId = this._getActiveProfileId();
-    if (!profileId || profileId === '_none') return;
+    if (!profileId || profileId === '_none') {
+      // 没有活跃档案时也设置默认状态，避免 status 为空
+      this.setData({ aiAnalysisStatus: 'default', aiAnalysisBusy: false });
+      return;
+    }
 
     // 前置检查1：登录状态
     if (!auth.getCurrentUser()) {
@@ -189,6 +193,10 @@ Page({
     const s = this.data.aiAnalysisStatus;
     if (s === 'login') {
       this.openAuthModal();
+      return;
+    }
+    if (this.data.aiAnalysisBusy) {
+      console.log('[AI] 已在分析中，忽略重复点击');
       return;
     }
     this._refreshAnalysis({ force: true });

@@ -154,7 +154,7 @@ async function refreshAIAnalysis({ force = false } = {}) {
     const result = await callFunction('ai_service', {
       action: 'analyze',
       data: { exams: payload }
-    });
+    }, { timeout: 25000 });
 
     // 如果请求已被后续请求覆盖，丢弃结果
     if (requestToken !== _analysisRequestToken) {
@@ -182,10 +182,21 @@ async function refreshAIAnalysis({ force = false } = {}) {
     if (requestToken !== _analysisRequestToken) {
       return { status: 'cancelled', html: '', meta: null };
     }
+
+    // 云函数不可用时，自动降级到本地基础分析
+    console.warn('[AI] 云函数调用失败，降级到本地分析:', error.message || error);
+    const fallbackText = buildLocalFallbackAnalysis(payload);
+    _lastAnalysisKey = cacheKey;
+    _lastAnalysisText = fallbackText;
+    _lastAnalysisMeta = {
+      source: 'local-fallback',
+      fallbackReason: '云函数 ai_service 尚未部署或暂不可用，当前为基础统计结果'
+    };
+
     return {
-      status: 'error',
-      html: '',
-      meta: null
+      status: 'success',
+      html: renderSuccess(fallbackText, _lastAnalysisMeta),
+      meta: _lastAnalysisMeta
     };
   }
 }
@@ -245,6 +256,61 @@ async function parseBatchSubjects(rawText, subjectHints = []) {
       message: error?.message || TEXT.batchParseFailed
     };
   }
+}
+
+// ==================== 本地降级分析（云函数不可用时的 fallback）====================
+
+/**
+ * 纯本地基础统计分析，不依赖云函数
+ * 逻辑与 web 端云函数中的 buildFallbackAnalysis 一致
+ */
+function buildLocalFallbackAnalysis(exams) {
+  const totals = exams.map(exam => Number(exam.totalScore) || 0);
+  const first = totals[0];
+  const last = totals[totals.length - 1];
+  const delta = last - first;
+
+  const subjectStats = new Map();
+  exams.forEach((exam) => {
+    (exam.subjects || []).forEach((subject) => {
+      if (!subject.name || !subject.fullScore) return;
+      const entry = subjectStats.get(subject.name) || { scores: [], rates: [] };
+      const score = Number(subject.score) || 0;
+      const fullScore = Number(subject.fullScore) || 100;
+      entry.scores.push(score);
+      entry.rates.push(score / fullScore);
+      subjectStats.set(subject.name, entry);
+    });
+  });
+
+  const summarizedSubjects = [...subjectStats.entries()].map(([name, entry]) => {
+    const averageRate = entry.rates.reduce((sum, rate) => sum + rate, 0) / entry.rates.length;
+    const trend = entry.scores.length >= 2 ? entry.scores[entry.scores.length - 1] - entry.scores[0] : 0;
+    return { name, averageRate, trend };
+  });
+
+  const bestSubject = [...summarizedSubjects].sort((a, b) => b.averageRate - a.averageRate)[0];
+  const weakSubject = [...summarizedSubjects].sort((a, b) => a.averageRate - b.averageRate)[0];
+
+  const trendLine = delta > 0
+    ? `📈 **趋势判断**\n最近 ${exams.length} 场考试总分整体在回升，从 ${first} 分提升到 ${last} 分，累计进步 ${delta} 分。`
+    : delta < 0
+      ? `📈 **趋势判断**\n最近 ${exams.length} 场考试总分有些波动，从 ${first} 分回落到 ${last} 分，先别焦虑，更值得看科目结构。`
+      : `📈 **趋势判断**\n最近 ${exams.length} 场考试总分整体比较稳定，目前还在一个可以继续打磨细节的区间。`;
+
+  const bestLine = bestSubject
+    ? `💪 **优势学科**\n${bestSubject.name} 的得分率最稳，平均约 ${(bestSubject.averageRate * 100).toFixed(0)}%，可以继续把它当作总分兜底科目。`
+    : '💪 **优势学科**\n当前有效数据还不够多，先继续记录几场考试，AI 才能更稳定地看出你的强项。';
+
+  const weakLine = weakSubject
+    ? `⚠️ **薄弱预警**\n${weakSubject.name} 目前是更需要关注的一科，平均得分率约 ${(weakSubject.averageRate * 100).toFixed(0)}%，建议优先回看最近失分点。`
+    : '⚠️ **薄弱预警**\n当前还没有足够的科目数据去判断薄弱项，先把每次考试记录完整。';
+
+  const nextLine = weakSubject
+    ? `🎯 **下一步建议**\n先把 ${weakSubject.name} 的基础题和高频错点稳住，再维持 ${bestSubject?.name || '优势学科'} 的稳定发挥，会比平均用力更有效。`
+    : '🎯 **下一步建议**\n继续补全考试记录，并优先保持每场考试的数据完整，后面 AI 给出的建议会更具体。';
+
+  return [trendLine, bestLine, weakLine, nextLine].join('\n\n');
 }
 
 // ==================== 渲染函数（返回 HTML 字符串，由页面 setData 渲染）====================
@@ -328,7 +394,7 @@ function renderError(message) {
 }
 
 function renderSourceNotice(meta) {
-  if (!meta || meta.source !== 'fallback') return '';
+  if (!meta || !meta.source || meta.source === 'cloudbase-ai' || meta.source === 'custom-openai-compatible') return '';
   const detail = meta.fallbackReason
     ? `<div class="ai-analysis-card__notice-detail">${String(meta.fallbackReason).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`
     : '';
